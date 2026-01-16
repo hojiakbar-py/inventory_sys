@@ -51,6 +51,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+package-lock.json
+yarn.lock
 
 # Python tooling
 .venv/
