@@ -1,6 +1,0 @@
-employee_id,first_name,last_name,position,department,email,phone,hire_date
-STAFF-001,Alisher,Rahimov,Senior Developer,IT Bo'lim,alisher.test@company.uz,+998901234567,2023-01-10
-E-2024-01,Dilnoza,Karimova,Bosh buxgalter,Buxgalteriya,dilnoza.test@company.uz,998901234568,2022-05-15
-TEST-001,Jamshid,Tursunov,HR Manager,Kadrlar bo'limi,jamshid.test@company.uz,,2023-03-20
-EMP999,Malika,Azizova,Dizayner,Dizayn bo'limi,,+998901234570,2023-07-01
-H-2024-A,Rustam,Ergashev,System Admin,IT Bo'lim,rustam.test@company.uz,998901234571,

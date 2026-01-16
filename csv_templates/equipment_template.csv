@@ -1,6 +1,0 @@
-inventory_number,name,category,manufacturer,model,serial_number,purchase_date,purchase_price,depreciation_rate,warranty_expiry,status,location,description
-INV-001,Dell Latitude 5520,Noutbuk,Dell,Latitude 5520,SN123456789,2024-01-15,15000000,20,2027-01-15,WORKING,IT Bo'lim - 3-xona,"Core i7, 16GB RAM, 512GB SSD"
-INV-002,HP LaserJet Pro,Printer,HP,LaserJet Pro MFP M428fdw,HP789456123,2024-02-10,8500000,15,2027-02-10,WORKING,Buxgalteriya,"Lazer printer, A4, qora-oq"
-INV-003,Logitech Webcam,Kamera,Logitech,C920 HD Pro,LOG456789,2024-03-05,450000,25,2026-03-05,WORKING,Konferensiya xonasi,Full HD 1080p veb-kamera
-INV-004,Microsoft Wireless Mouse,Sichqoncha,Microsoft,Bluetooth Mouse,MS987654,2024-01-20,125000,30,2025-01-20,WORKING,IT Bo'lim - Sklad,Bluetooth simsiz sichqoncha
-INV-005,Samsung Monitor 27,Monitor,Samsung,S27F350,SAM654321,2024-04-12,3500000,20,2028-04-12,WORKING,Dizayn bo'limi,27" Full HD LED monitor
