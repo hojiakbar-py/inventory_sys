@@ -1,23 +1,25 @@
-# 📦 Inventory Management System
+# Inventory Management System
 
-Django REST Framework va React asosida qurilgan zamonaviy inventarizatsiya boshqaruv tizimi.
+Modern inventory and equipment management system built with Django REST Framework and React.
 
-Modern inventory management system built with Django REST Framework and React.
+Zamonaviy inventarizatsiya va jihozlarni boshqarish tizimi - Django REST Framework va React asosida qurilgan.
 
-## 🚀 Xususiyatlar / Features
+---
 
-- ✅ **Jihozlar boshqaruvi** - Equipment management with full CRUD operations
-- ✅ **Hodimlar va tayinlashlar** - Employee management and equipment assignments
-- ✅ **QR kod generatsiya** - QR code generation for equipment tracking
-- ✅ **AI asosida nakladnoy skanerlash** - AI-powered invoice/document scanning (Google Gemini)
-- ✅ **Email bildirginomalari** - Email notifications for assignments
-- ✅ **Dashboard statistika** - Real-time dashboard with statistics
-- ✅ **Texnik xizmat ko'rsatish** - Maintenance tracking and scheduling
-- ✅ **PostgreSQL ma'lumotlar bazasi** - PostgreSQL database support
+## Features
 
-## 🛠️ Texnologiyalar / Tech Stack
+- **Equipment Management** - Complete CRUD operations for equipment tracking
+- **Employee Management** - Employee database with assignment history
+- **Equipment Assignment** - Track equipment assigned to employees
+- **QR Code Generation** - Generate QR codes for quick equipment identification
+- **AI Document Scanning** - Scan invoices/documents using Google Gemini AI
+- **Email Notifications** - Automated email alerts for assignments
+- **Dashboard Statistics** - Real-time analytics and reporting
+- **Maintenance Tracking** - Schedule and track equipment maintenance
 
-### Backend
+## Tech Stack
+
+**Backend:**
 - Python 3.11+
 - Django 5.0
 - Django REST Framework
@@ -25,227 +27,269 @@ Modern inventory management system built with Django REST Framework and React.
 - Google Gemini AI
 - OpenAI API
 
-### Frontend
+**Frontend:**
 - React 18
 - Axios
 - React Router
 
-## 📋 Talablar / Requirements
+---
 
-- Python 3.11 yoki yuqori
-- PostgreSQL 12 yoki yuqori
-- Node.js 18 yoki yuqori
-- npm yoki yarn
+## Quick Start
 
-## ⚙️ O'rnatish / Installation
+### Prerequisites
 
-### 1. Repository'ni klonlash / Clone Repository
+- Python 3.11+
+- PostgreSQL 12+
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+#### 1. Clone the repository
 
 ```bash
-git clone <your-repository-url>
-cd inventory-sys
+git clone https://github.com/hojiakbar-py/inventory_sys.git
+cd inventory_sys
 ```
 
-### 2. Backend sozlash / Backend Setup
+#### 2. Backend Setup
 
 ```bash
-# Virtual environment yaratish
-# Create virtual environment
 cd backend
+
+# Create virtual environment
 python -m venv venv
 
-# Virtual environment'ni faollashtirish
 # Activate virtual environment
 # Windows:
 venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
 
-# Kerakli kutubxonalarni o'rnatish
 # Install dependencies
 pip install -r requirements.txt
 
-# .env faylini yaratish
-# Create .env file
-copy .env.example .env
-# yoki Linux/Mac uchun: cp .env.example .env
+# Create .env file from example
+copy .env.example .env  # Windows
+# cp .env.example .env  # Linux/Mac
 
-# .env faylini tahrirlang va barcha qiymatlarni kiriting!
-# Edit .env file and fill in all values!
-# Muhim: SECRET_KEY, DB_PASSWORD, va API kalitlarni o'zgartiring
-# Important: Change SECRET_KEY, DB_PASSWORD, and API keys
+# Edit .env and configure:
+# - SECRET_KEY (generate new one)
+# - Database credentials
+# - Email settings
+# - AI API keys
 ```
 
-### 3. PostgreSQL sozlash / PostgreSQL Setup
+#### 3. Database Setup
 
 ```bash
-# PostgreSQL'ga ulanish
-# Connect to PostgreSQL
+# Create PostgreSQL database
 psql -U postgres
-
-# Ma'lumotlar bazasi yaratish
-# Create database
 CREATE DATABASE inventory_db;
-
-# Chiqish
-# Exit
 \q
-```
 
-### 4. Database migratsiyalari / Database Migrations
-
-```bash
-# Migratsiyalarni yaratish
-# Create migrations
-python manage.py makemigrations
-
-# Migratsiyalarni bajarish
 # Run migrations
 python manage.py migrate
 
-# Superuser yaratish
 # Create superuser
 python manage.py createsuperuser
+
+# Start development server
+python manage.py runserver
 ```
 
-### 5. Backend serverni ishga tushirish / Run Backend Server
+Backend will run at `http://localhost:8000`
 
-```bash
-python manage.py runserver 0.0.0.0:8000
-```
+#### 4. Frontend Setup
 
-Backend http://localhost:8000 da ishga tushadi
-
-### 6. Frontend sozlash / Frontend Setup
-
-Yangi terminal oching:
+Open new terminal:
 
 ```bash
 cd frontend
 
-# Paketlarni o'rnatish
-# Install packages
+# Install dependencies
 npm install
 
-# Development serverni ishga tushirish
-# Run development server
+# Start development server
 npm start
 ```
 
-Frontend http://localhost:3000 da ishga tushadi
+Frontend will run at `http://localhost:3000`
 
-## 🔑 Environment Variables
+---
 
-`.env` faylida quyidagi o'zgaruvchilarni to'ldiring:
+## Environment Variables
 
-### Django Settings
-- `SECRET_KEY` - Django secret key (yarating: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
-- `DEBUG` - Debug rejimi (development: True, production: False)
-- `ALLOWED_HOSTS` - Ruxsat berilgan hostlar
+Copy `backend/.env.example` to `backend/.env` and configure:
 
-### Database
-- `DB_NAME` - Ma'lumotlar bazasi nomi (default: inventory_db)
-- `DB_USER` - PostgreSQL foydalanuvchi
-- `DB_PASSWORD` - PostgreSQL parol (kuchli parol kiriting!)
-- `DB_HOST` - Database host (default: localhost)
-- `DB_PORT` - Database port (default: 5432)
+### Required Settings
 
-### Email (Gmail)
-- `EMAIL_HOST_USER` - Gmail manzilingiz
-- `EMAIL_HOST_PASSWORD` - Gmail App Password (https://myaccount.google.com/apppasswords)
+```bash
+# Django
+SECRET_KEY=your-secret-key-here  # Generate: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-### AI API Keys
-- `OPENAI_API_KEY` - OpenAI API key (https://platform.openai.com/api-keys)
-- `GEMINI_API_KEY` - Google Gemini API key (https://makersuite.google.com/app/apikey)
+# PostgreSQL
+DB_NAME=inventory_db
+DB_USER=postgres
+DB_PASSWORD=your-password
+DB_HOST=localhost
+DB_PORT=5432
 
-## 📱 API Endpoints
+# Gmail SMTP (for notifications)
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password  # Get from: https://myaccount.google.com/apppasswords
+
+# AI APIs (optional)
+OPENAI_API_KEY=your-openai-key  # https://platform.openai.com/api-keys
+GEMINI_API_KEY=your-gemini-key  # https://makersuite.google.com/app/apikey
+```
+
+---
+
+## API Documentation
 
 ### Authentication
-- `POST /api/auth/login/` - Tizimga kirish
-- `POST /api/auth/logout/` - Tizimdan chiqish
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login/` | User login |
+| POST | `/api/auth/logout/` | User logout |
 
 ### Equipment
-- `GET /api/equipment/` - Barcha jihozlar ro'yxati
-- `POST /api/equipment/` - Yangi jihoz qo'shish
-- `GET /api/equipment/{id}/` - Jihoz ma'lumotlari
-- `PUT /api/equipment/{id}/` - Jihozni yangilash
-- `DELETE /api/equipment/{id}/` - Jihozni o'chirish
-- `GET /api/equipment/{id}/qr_code/` - QR kod olish
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/equipment/` | List all equipment |
+| POST | `/api/equipment/` | Create equipment |
+| GET | `/api/equipment/{id}/` | Get equipment details |
+| PUT | `/api/equipment/{id}/` | Update equipment |
+| DELETE | `/api/equipment/{id}/` | Delete equipment |
+| GET | `/api/equipment/{id}/qr_code/` | Generate QR code |
 
 ### Employees
-- `GET /api/employees/` - Barcha hodimlar
-- `POST /api/employees/` - Yangi hodim qo'shish
-- `GET /api/employees/{id}/` - Hodim ma'lumotlari
-- `PUT /api/employees/{id}/` - Hodimni yangilash
-- `DELETE /api/employees/{id}/` - Hodimni o'chirish
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/employees/` | List all employees |
+| POST | `/api/employees/` | Create employee |
+| GET | `/api/employees/{id}/` | Get employee details |
+| PUT | `/api/employees/{id}/` | Update employee |
+| DELETE | `/api/employees/{id}/` | Delete employee |
 
 ### Assignments
-- `GET /api/assignments/` - Barcha tayinlashlar
-- `POST /api/assignments/` - Jihozni tayinlash
-- `GET /api/assignments/{id}/` - Tayinlash ma'lumotlari
-- `POST /api/assignments/{id}/return/` - Jihozni qaytarish
-- `GET /api/assignments/dashboard_stats/` - Dashboard statistika
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/assignments/` | List all assignments |
+| POST | `/api/assignments/` | Assign equipment |
+| GET | `/api/assignments/{id}/` | Get assignment details |
+| POST | `/api/assignments/{id}/return/` | Return equipment |
+| GET | `/api/assignments/dashboard_stats/` | Get dashboard statistics |
 
 ### Maintenance
-- `GET /api/maintenance/` - Texnik xizmat ro'yxati
-- `POST /api/maintenance/` - Yangi texnik xizmat
-- `PUT /api/maintenance/{id}/` - Texnik xizmatni yangilash
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/maintenance/` | List maintenance records |
+| POST | `/api/maintenance/` | Create maintenance record |
+| PUT | `/api/maintenance/{id}/` | Update maintenance record |
 
 ### Document Scanning
-- `POST /api/scan-nakladnoy/` - Nakladnoy rasmini skanerlash (AI)
 
-## 🔒 Xavfsizlik / Security
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/scan-nakladnoy/` | Scan invoice with AI |
 
-- ⚠️ `.env` faylini **HECH QACHON** Git'ga commit qilmang!
-- ⚠️ Production'da `DEBUG=False` qiling
-- ⚠️ Kuchli parollar ishlating
-- ⚠️ API kalitlarni maxfiy saqlang
-- ⚠️ `ALLOWED_HOSTS` ni production'da aniq domenlar bilan to'ldiring
+---
 
-## 📝 Development
+## Development
 
-### Code Style
-- Backend: PEP 8 standartiga rioya qiling
-- Frontend: ESLint konfiguratsiyasiga amal qiling
+### Running Tests
 
-### Testing
 ```bash
-# Backend testlar
+# Backend tests
 cd backend
 python manage.py test
 
-# Frontend testlar
+# Frontend tests
 cd frontend
 npm test
 ```
 
-## 🐛 Muammolarni hal qilish / Troubleshooting
+### Code Style
 
-### Database xatosi: "no such column"
-Migratsiyalarni qayta bajaring:
+- **Backend:** Follow PEP 8 standards
+- **Frontend:** Use ESLint configuration
+
+---
+
+## Troubleshooting
+
+### Database Migration Error
+
+If you encounter "no such column" errors:
+
 ```bash
 python manage.py migrate --run-syncdb
 ```
 
-### CORS xatosi
-`.env` faylidagi `CORS_ALLOWED_ORIGINS` ga frontend URL'ni qo'shing
+### CORS Error
 
-### Email yuborilmayapti
-- Gmail'da 2-Step Verification yoqilganligini tekshiring
-- App Password to'g'ri kiritilganligini tekshiring
+Add your frontend URL to `CORS_ALLOWED_ORIGINS` in `.env`:
 
-## 📄 License
+```bash
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
 
-MIT License
+### Email Not Sending
 
-## 👨‍💻 Muallif / Author
-
-[Your Name]
-
-## 🤝 Hissa qo'shish / Contributing
-
-Pull requestlar qabul qilinadi! Katta o'zgarishlar uchun avval issue oching.
+1. Enable 2-Step Verification in Gmail
+2. Generate App Password: https://myaccount.google.com/apppasswords
+3. Use the 16-character App Password in `.env`
 
 ---
 
-**Eslatma:** Production muhitga o'tkazishdan oldin barcha xavfsizlik sozlamalarini tekshiring!
+## Docker Support
+
+Run with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- PostgreSQL database
+- Django backend
+- React frontend
+
+---
+
+## Security
+
+- Never commit `.env` file to Git
+- Use strong passwords for database and admin accounts
+- Keep API keys confidential
+- Set `DEBUG=False` in production
+- Configure `ALLOWED_HOSTS` for production domains
+
+---
+
+## Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+MIT License
+
+---
+
+## Author
+
+Hojiakbar Habibullayev
+
+## Support
+
+For issues and questions, please open an issue on GitHub.
