@@ -4,7 +4,7 @@ Modern inventory and equipment management system built with Django REST Framewor
 
 Zamonaviy inventarizatsiya va jihozlarni boshqarish tizimi - Django REST Framework va React asosida qurilgan.
 
----
+------
 
 ## Features
 
