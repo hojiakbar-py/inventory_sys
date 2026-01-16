@@ -1,0 +1,7 @@
+employee_id,first_name,last_name,position,department,email,phone,hire_date
+EMP001,Alisher,Rahimov,Senior Developer,IT Bo'lim,alisher.rahimov@company.uz,+998901234567,2023-01-10
+EMP002,Dilnoza,Karimova,Bosh buxgalter,Buxgalteriya,dilnoza.karimova@company.uz,+998901234568,2022-05-15
+EMP003,Jamshid,Tursunov,HR Manager,Kadrlar bo'limi,jamshid.tursunov@company.uz,+998901234569,2023-03-20
+EMP004,Malika,Azizova,Dizayner,Dizayn bo'limi,malika.azizova@company.uz,+998901234570,2023-07-01
+EMP005,Rustam,Ergashev,System Admin,IT Bo'lim,rustam.ergashev@company.uz,+998901234571,2022-11-05
+EMP006,Sevara,Usmanova,Marketing Manager,Marketing,sevara.usmanova@company.uz,+998901234572,2023-02-14

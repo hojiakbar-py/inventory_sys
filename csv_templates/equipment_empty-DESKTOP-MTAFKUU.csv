@@ -1,0 +1,2 @@
+inventory_number,name,category,manufacturer,model,serial_number,purchase_date,purchase_price,depreciation_rate,warranty_expiry,status,location,description
+INV-001,Dell Latitude 5520,Noutbuk,Dell,Latitude 5520,SN123456789,1/15/2024,15000000,20,1/15/2027,WORKING,IT Bo'lim - 3-xona,"Core i7, 16GB RAM, 512GB SSD"

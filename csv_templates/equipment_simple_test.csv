@@ -1,0 +1,2 @@
+inventory_number,name,category,manufacturer,model,serial_number,purchase_date,purchase_price,depreciation_rate,warranty_expiry,status,location,description
+TEST-999,Test Laptop,Laptop,Dell,E7450,,2024-01-01,1000000,10,,,Test device

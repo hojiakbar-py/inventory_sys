@@ -1,0 +1,115 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: inventory_db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=inventory_db
+      - POSTGRES_USER=inventory_user
+      - POSTGRES_PASSWORD=inventory_pass_2024
+    ports:
+      - "0.0.0.0:5433:5432"
+    networks:
+      - inventory_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventory_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn inventory_system.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "0.0.0.0:8000:8000"
+    networks:
+      - inventory_network
+    env_file:
+      - ./backend/.env
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=inventory_db
+      - DB_USER=inventory_user
+      - DB_PASSWORD=inventory_pass_2024
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # React Frontend
+  frontend:
+    image: node:20-alpine
+    container_name: inventory_frontend
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install && npm start"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "0.0.0.0:3000:3000"
+    networks:
+      - inventory_network
+    environment:
+      - REACT_APP_API_URL=http://10.43.93.108:8000/api
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    depends_on:
+      - backend
+
+  # Redis (Optional - for caching)
+  redis:
+    image: redis:7-alpine
+    container_name: inventory_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - inventory_network
+    volumes:
+      - redis_data:/data
+
+  # Nginx (Optional - for production)
+  nginx:
+    image: nginx:alpine
+    container_name: inventory_nginx
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+    networks:
+      - inventory_network
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - backend
+      - frontend
+    profiles:
+      - production
+
+networks:
+  inventory_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  redis_data:

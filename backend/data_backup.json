@@ -1,0 +1,4 @@
+CommandError: Unable to serialize database: column inventory_branch.country does not exist
+LINE 1: ...tory_branch"."city", "inventory_branch"."region", "inventory...
+                                                             ^
+[

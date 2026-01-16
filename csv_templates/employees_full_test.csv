@@ -1,0 +1,9 @@
+employee_id,first_name,last_name,middle_name,position,department,email,phone,hire_date,birth_date,address
+STAFF-001,Alisher,Rahimov,Karimovich,Senior Developer,IT Bo'lim,alisher.test@company.uz,+998901234567,2023-01-10,1990-05-15,Toshkent sh. Chilonzor tumani
+E-2024-01,Dilnoza,Karimova,Azimovna,Bosh buxgalter,Buxgalteriya,dilnoza.test@company.uz,998901234568,2022-05-15,1988-03-20,Toshkent sh. Yunusobod tumani
+TEST-002,Jamshid,Tursunov,Akmalovich,HR Manager,Kadrlar bo'limi,jamshid.test@company.uz,+998901234569,2023-03-20,1992-08-10,Toshkent sh. Mirobod tumani
+EMP999,Malika,Azizova,Shavkatovna,Dizayner,Dizayn bo'limi,malika.test@company.uz,+998901234570,2023-07-01,1995-12-05,Toshkent sh. Shayxontoxur tumani
+H-2024-A,Rustam,Ergashev,Aliyevich,System Admin,IT Bo'lim,rustam.test@company.uz,998901234571,2022-11-05,1987-09-25,Toshkent sh. Yashnobod tumani
+ADMIN-01,Sevara,Usmanova,Rustamovna,Marketing Manager,Marketing,sevara.test@company.uz,+998901234572,2023-02-14,1991-06-30,Toshkent sh. Bektemir tumani
+DEV-2024,Otabek,Sobirov,Baxtiyorovich,Junior Developer,IT Bo'lim,otabek.test@company.uz,998901234573,2024-01-15,1998-02-18,Toshkent sh. Sergeli tumani
+QA-001,Feruza,Nazarova,Davronovna,QA Engineer,IT Bo'lim,feruza.test@company.uz,+998901234574,2023-09-01,1993-11-08,Toshkent sh. Uchtepa tumani
