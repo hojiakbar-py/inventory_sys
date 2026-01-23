@@ -1,3 +1,50 @@
+# Inventarni Boshqarish Tizimi
+
+Ushbu qo'llanma `inventory-sys` loyihasini ishga tushurish uchun mo'ljallangan.
+
+---
+
+## Ishga tushurish bo'yicha qo'llanma (O'zbekcha)
+
+### 1. Docker orqali tezkor ishga tushurish (Eng oson usul)
+
+Bu usul loyihani eng tez va oson ishga tushurish imkonini beradi. Kompyuteringizda **Docker** va **Docker Compose** o'rnatilgan bo'lishi kerak.
+
+1.  **Loyihani yuklab oling:**
+    ```bash
+    git clone https://github.com/hojiakbar-py/inventory_sys.git
+    cd inventory_sys
+    ```
+
+2.  **Konfiguratsiya faylini yarating:**
+    `backend/` papkasida `.env.example` faylidan nusxa olib, `.env` nomli yangi fayl yarating.
+    ```bash
+    # Windows
+    copy backend\.env.example backend\.env
+
+    # Linux/Mac
+    cp backend/.env.example backend/.env
+    ```
+    Endi `backend/.env` faylini ochib, kerakli ma'lumotlarni to'ldiring (masalan, ma'lumotlar bazasi paroli, API kalitlari). Batafsil ma'lumot uchun pastdagi **Environment Variables** bo'limiga qarang. **HECH BO'LMAGANDA `SECRET_KEY` va ma'lumotlar bazasi sozlamalarini to'ldirishingiz kerak.**
+
+3.  **Docker-ni ishga tushuring:**
+    Asosiy papkadan (root directory) quyidagi buyruqni bajaring:
+    ```bash
+    docker-compose up --build -d
+    ```
+
+4.  **Tayyor!**
+    Tizim to'liq ishga tushgandan so'ng, uni brauzeringizda ochishingiz mumkin:
+    -   **Frontend (React):** [http://localhost:3000](http://localhost:3000)
+    -   **Backend (Django API):** [http://localhost:8000](http://localhost:8000)
+
+### 2. Qo'lda o'rnatish
+
+Agar loyihani Docker'siz, o'zingizning kompyuteringizda to'g'ridan-to'g'ri ishga tushurmoqchi bo'lsangiz, pastdagi ingliz tilidagi batafsil qo'llanmaga rioya qiling (**Quick Start** bo'limi).
+
+---
+<hr>
+
 # Inventory Management System
 
 Modern inventory and equipment management system built with Django REST Framework and React.
