@@ -1,3 +1,10 @@
+# ==========================================
+# INVENTORY SYSTEM - DEVELOPMENT DOCKER COMPOSE
+# ==========================================
+# Bu fayl faqat DEVELOPMENT uchun!
+# Production uchun docker-compose.prod.yml ishlating
+# ==========================================
+
 services:
   # PostgreSQL Database
   db:
@@ -7,15 +14,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=inventory_db
-      - POSTGRES_USER=inventory_user
-      - POSTGRES_PASSWORD=inventory_pass_2024
+      - POSTGRES_DB=${DB_NAME:-inventory_db}
+      - POSTGRES_USER=${DB_USER:-inventory_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-dev_password_change_me}
     ports:
-      - "0.0.0.0:5433:5432"
+      - "5433:5432"
     networks:
       - inventory_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inventory_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-inventory_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,23 +43,19 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
-      - "0.0.0.0:8000:8000"
+      - "8000:8000"
     networks:
       - inventory_network
     env_file:
       - ./backend/.env
     environment:
-      - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=inventory_db
-      - DB_USER=inventory_user
-      - DB_PASSWORD=inventory_pass_2024
       - DB_HOST=db
       - DB_PORT=5432
     depends_on:
       db:
         condition: service_healthy
 
-  # React Frontend
+  # React Frontend (Development mode)
   frontend:
     image: node:20-alpine
     container_name: inventory_frontend
@@ -63,11 +66,11 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "0.0.0.0:3000:3000"
+      - "3000:3000"
     networks:
       - inventory_network
     environment:
-      - REACT_APP_API_URL=http://10.43.93.108:8000/api
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000/api}
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:
@@ -85,24 +88,25 @@ services:
     volumes:
       - redis_data:/data
 
-  # Nginx (Optional - for production)
+  # Nginx (Development - optional)
+  # Production uchun docker-compose.prod.yml ishlating
   nginx:
     image: nginx:alpine
     container_name: inventory_nginx
     restart: unless-stopped
     ports:
-      - "0.0.0.0:80:80"
+      - "80:80"
     networks:
       - inventory_network
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
       - backend
       - frontend
     profiles:
-      - production
+      - with-nginx
 
 networks:
   inventory_network:

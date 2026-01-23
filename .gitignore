@@ -44,6 +44,16 @@ logs/
 *.key
 *.pem
 
+# SSL Certificates
+nginx/ssl/
+ssl/
+certs/
+
+# Database Backups
+backups/
+*.sql
+*.dump
+
 # React
 node_modules/
 build/

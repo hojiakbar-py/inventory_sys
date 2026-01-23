@@ -18,10 +18,32 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+from django.db import connection
+
+
+def health_check(request):
+    """Health check endpoint for monitoring and load balancers."""
+    try:
+        # Database ulanishini tekshirish
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    status = "healthy" if db_status == "healthy" else "unhealthy"
+    return JsonResponse({
+        "status": status,
+        "database": db_status,
+        "version": "1.0.0"
+    }, status=200 if status == "healthy" else 503)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('inventory.urls')),
+    path('api/health/', health_check, name='health_check'),
 ]
 
 if settings.DEBUG:
