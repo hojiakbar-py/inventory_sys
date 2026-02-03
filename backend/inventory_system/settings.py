@@ -235,9 +235,10 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 # Security sozlamalari (Production uchun)
 if not DEBUG:
     SECURE_SSL_REDIRECT = False
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    CSRF_TRUSTED_ORIGINS = ['http://192.168.0.129', 'http://localhost']
 
