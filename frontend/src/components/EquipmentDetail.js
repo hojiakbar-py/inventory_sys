@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { equipmentAPI, employeeAPI, maintenanceAPI } from '../api';
 
@@ -36,15 +36,11 @@ function EquipmentDetail() {
     maintenance_type: 'REPAIR',
     description: '',
     performed_by: '',
-    cost: 0,
+    actual_cost: 0,
     notes: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [equipmentRes, employeesRes] = await Promise.all([
         equipmentAPI.get(id),
@@ -57,7 +53,11 @@ function EquipmentDetail() {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAssign = async (e) => {
     e.preventDefault();
@@ -151,10 +151,10 @@ function EquipmentDetail() {
           </div>
         </div>
 
-        {equipment.description && (
+        {equipment.notes && (
           <div style={{ marginTop: '20px' }}>
-            <h3>Tavsif</h3>
-            <p>{equipment.description}</p>
+            <h3>Izohlar</h3>
+            <p>{equipment.notes}</p>
           </div>
         )}
 
@@ -432,8 +432,8 @@ function EquipmentDetail() {
               <label>Xarajat (so'm)</label>
               <input
                 type="number"
-                value={maintenanceData.cost}
-                onChange={(e) => setMaintenanceData({ ...maintenanceData, cost: e.target.value })}
+                value={maintenanceData.actual_cost}
+                onChange={(e) => setMaintenanceData({ ...maintenanceData, actual_cost: e.target.value })}
               />
             </div>
             <div className="form-group">

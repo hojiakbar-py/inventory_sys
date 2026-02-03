@@ -146,4 +146,5 @@ export const qrScanAPI = {
   scan: (qrData) => api.post('/qr-scan/scan/', { qr_data: qrData }),
 };
 
+export { api };
 export default api;

@@ -299,7 +299,7 @@ class Branch(CodeNameMixin, DescriptionMixin, FullAuditModel):
         """
         return self.departments.filter(is_active=True).count()
 
-    def get_all_sub_branches(self) -> list:
+    def get_all_sub_branches(self, _visited=None) -> list:
         """
         Get all sub-branches recursively (entire hierarchy below this branch).
 
@@ -312,9 +312,16 @@ class Branch(CodeNameMixin, DescriptionMixin, FullAuditModel):
             >>> len(all_branches)
             15
         """
-        sub_branches = list(self.sub_branches.filter(is_active=True))
-        for sub_branch in self.sub_branches.filter(is_active=True):
-            sub_branches.extend(sub_branch.get_all_sub_branches())
+        if _visited is None:
+            _visited = set()
+        if self.pk in _visited:
+            return []
+        _visited.add(self.pk)
+
+        children = list(self.sub_branches.filter(is_active=True))
+        sub_branches = list(children)
+        for sub_branch in children:
+            sub_branches.extend(sub_branch.get_all_sub_branches(_visited=_visited))
         return sub_branches
 
     def get_hierarchy_level(self) -> int:
@@ -330,7 +337,11 @@ class Branch(CodeNameMixin, DescriptionMixin, FullAuditModel):
         """
         level = 0
         current = self
+        visited = set()
         while current.parent_branch:
+            if current.pk in visited:
+                break
+            visited.add(current.pk)
             level += 1
             current = current.parent_branch
         return level
@@ -1375,12 +1386,17 @@ class Assignment(NoteMixin, TimeStampedModel):
         Override save to update equipment status.
 
         Automatically updates equipment status based on assignment state.
+        Uses update() to avoid triggering Equipment.save() override recursively.
         """
         if self.return_date:
-            self.equipment.status = EquipmentStatus.AVAILABLE
+            new_status = EquipmentStatus.AVAILABLE
         else:
-            self.equipment.status = EquipmentStatus.ASSIGNED
-        self.equipment.save()
+            new_status = EquipmentStatus.ASSIGNED
+
+        if self.equipment.status != new_status:
+            Equipment.objects.filter(pk=self.equipment.pk).update(status=new_status)
+            self.equipment.status = new_status
+
         super().save(*args, **kwargs)
 
 
@@ -2001,6 +2017,7 @@ class AuditLog(TimeStampedModel):
     user_agent = models.CharField(
         max_length=500,
         blank=True,
+        null=True,
         verbose_name="User Agent",
         help_text="Brauzer user agent string"
     )

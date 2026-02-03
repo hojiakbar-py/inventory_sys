@@ -58,7 +58,7 @@ services:
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn inventory_system.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class gthread --worker-tmp-dir /dev/shm --access-logfile - --error-logfile -"
+             gunicorn inventory_system.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class gthread --worker-tmp-dir /dev/shm --timeout 120 --access-logfile - --error-logfile -"
     volumes:
       - static_volume_prod:/app/staticfiles
       - media_volume_prod:/app/media
@@ -67,6 +67,8 @@ services:
       - ./backend/.env.production
     environment:
       - DJANGO_SETTINGS_MODULE=inventory_system.settings
+      - DB_HOST=db
+      - DB_PORT=5432
     networks:
       - inventory_network_prod
     depends_on:
@@ -75,7 +77,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/')"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -111,7 +111,7 @@ class BranchService:
             AuditLog.log_action(
                 action=AuditAction.CREATE,
                 user=user,
-                content_object=branch,
+                obj=branch,
                 description=f"Yangi filial yaratildi: {branch.name}"
             )
 
@@ -166,7 +166,7 @@ class BranchService:
             AuditLog.log_action(
                 action=AuditAction.UPDATE,
                 user=user,
-                content_object=branch,
+                obj=branch,
                 description=f"Filial ma'lumotlari yangilandi: {branch.name}"
             )
 
@@ -363,7 +363,7 @@ class BranchService:
             AuditLog.log_action(
                 action=AuditAction.UPDATE,
                 user=user,
-                content_object=branch,
+                obj=branch,
                 description=f"Filial nofaollashtirildi: {branch.name}" +
                            (" (barcha quyi filiallar bilan)" if cascade else "")
             )
@@ -463,7 +463,7 @@ class EquipmentService:
             AuditLog.log_action(
                 action=AuditAction.CREATE,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Created equipment: {equipment.name}"
             )
 
@@ -524,7 +524,7 @@ class EquipmentService:
                 AuditLog.log_action(
                     action=AuditAction.UPDATE,
                     user=user,
-                    content_object=equipment,
+                    obj=equipment,
                     description=f"Updated equipment: {', '.join(changes)}"
                 )
 
@@ -579,7 +579,7 @@ class EquipmentService:
             AuditLog.log_action(
                 action=AuditAction.UPDATE,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=description
             )
 
@@ -749,7 +749,7 @@ class AssignmentService:
         # Check for existing active assignment
         existing = Assignment.objects.filter(
             equipment=equipment,
-            returned_date__isnull=True
+            return_date__isnull=True
         ).first()
 
         if existing:
@@ -760,11 +760,9 @@ class AssignmentService:
             assignment = Assignment.objects.create(
                 equipment=equipment,
                 employee=employee,
-                assigned_by=assigned_by,
-                assigned_date=date.today(),
+                assigned_by=user,
                 expected_return_date=expected_return_date,
-                notes=notes,
-                created_by=user
+                notes=notes
             )
 
             # Update equipment status
@@ -776,7 +774,7 @@ class AssignmentService:
             AuditLog.log_action(
                 action=AuditAction.ASSIGN,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Assigned to {employee.get_full_name()}"
             )
 
@@ -813,16 +811,16 @@ class AssignmentService:
             ...     condition=EquipmentCondition.GOOD
             ... )
         """
-        if assignment.returned_date:
+        if assignment.return_date:
             raise ValidationError("Equipment already returned")
 
         with transaction.atomic():
             # Update assignment
-            assignment.returned_date = date.today()
-            assignment.returned_by = returned_by
-            assignment.return_condition = condition
+            assignment.return_date = timezone.now()
+            assignment.returned_by = user
+            assignment.condition_on_return = condition
             if notes:
-                assignment.notes = f"{assignment.notes or ''}\nReturn: {notes}"
+                assignment.return_notes = notes
             assignment.save()
 
             # Update equipment status
@@ -837,7 +835,7 @@ class AssignmentService:
             AuditLog.log_action(
                 action=AuditAction.RETURN,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Returned by {assignment.employee.get_full_name()}"
             )
 
@@ -863,7 +861,7 @@ class AssignmentService:
             ...     employee=john_doe
             ... )
         """
-        queryset = Assignment.objects.filter(returned_date__isnull=True)
+        queryset = Assignment.objects.filter(return_date__isnull=True)
 
         if employee:
             queryset = queryset.filter(employee=employee)
@@ -885,7 +883,7 @@ class AssignmentService:
         """
         today = date.today()
         return Assignment.objects.filter(
-            returned_date__isnull=True,
+            return_date__isnull=True,
             expected_return_date__lt=today
         ).select_related('equipment', 'employee')
 
@@ -969,7 +967,8 @@ class MaintenanceService:
                 scheduled_date=scheduled_date,
                 description=description,
                 priority=priority,
-                assigned_to=assigned_to,
+                technician=assigned_to,
+                performed_by=assigned_to.get_full_name() if assigned_to else '',
                 estimated_cost=estimated_cost or Decimal('0.00'),
                 status=MaintenanceStatus.SCHEDULED,
                 created_by=user
@@ -984,7 +983,7 @@ class MaintenanceService:
             AuditLog.log_action(
                 action=AuditAction.MAINTAIN,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Maintenance scheduled: {maintenance_type}"
             )
 
@@ -1010,7 +1009,7 @@ class MaintenanceService:
         """
         with transaction.atomic():
             record.status = MaintenanceStatus.IN_PROGRESS
-            record.actual_start_date = date.today()
+            record.started_date = timezone.now()
             record.save()
 
             # Update equipment status
@@ -1054,7 +1053,7 @@ class MaintenanceService:
         """
         with transaction.atomic():
             record.status = MaintenanceStatus.COMPLETED
-            record.completion_date = date.today()
+            record.performed_date = timezone.now()
 
             if actual_cost is not None:
                 record.actual_cost = actual_cost
@@ -1063,7 +1062,7 @@ class MaintenanceService:
             if labor_cost is not None:
                 record.labor_cost = labor_cost
             if notes:
-                record.notes = f"{record.notes or ''}\nCompletion: {notes}"
+                record.notes = notes
 
             record.save()
 
@@ -1078,7 +1077,7 @@ class MaintenanceService:
             AuditLog.log_action(
                 action=AuditAction.MAINTAIN,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Maintenance completed: {record.maintenance_type}"
             )
 
@@ -1118,7 +1117,7 @@ class MaintenanceService:
         if end_date:
             queryset = queryset.filter(scheduled_date__lte=end_date)
 
-        return queryset.select_related('equipment', 'assigned_to').order_by('scheduled_date')
+        return queryset.select_related('equipment', 'technician').order_by('scheduled_date')
 
     @staticmethod
     def get_equipment_maintenance_history(equipment: Equipment) -> QuerySet:
@@ -1136,7 +1135,7 @@ class MaintenanceService:
         """
         return MaintenanceRecord.objects.filter(
             equipment=equipment
-        ).select_related('assigned_to').order_by('-scheduled_date')
+        ).select_related('technician').order_by('-scheduled_date')
 
     @staticmethod
     def calculate_maintenance_cost(
@@ -1168,9 +1167,9 @@ class MaintenanceService:
         if equipment:
             queryset = queryset.filter(equipment=equipment)
         if start_date:
-            queryset = queryset.filter(completion_date__gte=start_date)
+            queryset = queryset.filter(performed_date__gte=start_date)
         if end_date:
-            queryset = queryset.filter(completion_date__lte=end_date)
+            queryset = queryset.filter(performed_date__lte=end_date)
 
         totals = queryset.aggregate(
             total_cost=Sum('actual_cost'),
@@ -1206,8 +1205,8 @@ class InventoryCheckService:
         equipment: Equipment,
         check_type: str,
         user: Optional[User] = None,
-        performed_by: Optional[Employee] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        **kwargs
     ) -> InventoryCheck:
         """
         Create inventory check record.
@@ -1234,17 +1233,18 @@ class InventoryCheckService:
             check = InventoryCheck.objects.create(
                 equipment=equipment,
                 check_type=check_type,
-                check_date=date.today(),
-                performed_by=performed_by,
+                checked_by=user,
                 notes=notes,
-                created_by=user
+                location=kwargs.get('location', ''),
+                condition=kwargs.get('condition', ''),
+                is_functional=kwargs.get('is_functional', True),
             )
 
             # Log the check
             AuditLog.log_action(
                 action=AuditAction.CHECK,
                 user=user,
-                content_object=equipment,
+                obj=equipment,
                 description=f"Inventory check performed: {check_type}"
             )
 
@@ -1270,8 +1270,9 @@ class InventoryCheckService:
         Examples:
             >>> InventoryCheckService.confirm_check(check, john_doe, request.user)
         """
-        check.confirmed_by = employee
-        check.confirmation_date = date.today()
+        check.employee = employee
+        check.employee_confirmed = True
+        check.confirmation_date = timezone.now()
         check.save()
 
         return check
@@ -1300,7 +1301,7 @@ class InventoryCheckService:
         if equipment:
             queryset = queryset.filter(equipment=equipment)
 
-        return queryset.select_related('equipment', 'performed_by', 'confirmed_by').order_by('-check_date')
+        return queryset.select_related('equipment', 'checked_by', 'employee').order_by('-check_date')
 
 
 # ============================================
@@ -1360,7 +1361,7 @@ class EmployeeService:
             AuditLog.log_action(
                 action=AuditAction.CREATE,
                 user=user,
-                content_object=employee,
+                obj=employee,
                 description=f"Created employee: {employee.get_full_name()}"
             )
 
@@ -1445,7 +1446,7 @@ class DepartmentService:
 
         assigned_equipment = Equipment.objects.filter(
             assignment__employee__in=employees,
-            assignment__returned_date__isnull=True
+            assignment__return_date__isnull=True
         ).distinct()
 
         return {

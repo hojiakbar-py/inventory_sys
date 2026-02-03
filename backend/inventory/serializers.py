@@ -681,15 +681,25 @@ class EmployeeListSerializer(BaseModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
+    qr_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
         fields = [
             'id', 'employee_id', 'full_name',
             'branch_name', 'department_name', 'position',
-            'email', 'phone', 'is_active'
+            'email', 'phone', 'is_active', 'qr_code'
         ]
         read_only_fields = ['id']
+
+    def get_qr_code(self, obj):
+        """Return full QR code URL."""
+        if obj.qr_code:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.qr_code.url)
+            return obj.qr_code.url
+        return None
 
 
 class EmployeeDetailSerializer(EmployeeSerializer):
@@ -874,6 +884,7 @@ class EquipmentListSerializer(BaseModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    qr_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Equipment
@@ -881,9 +892,18 @@ class EquipmentListSerializer(BaseModelSerializer):
             'id', 'name', 'inventory_number', 'serial_number',
             'branch_name', 'category_name', 'manufacturer', 'model',
             'status', 'status_display',
-            'is_active'
+            'is_active', 'qr_code'
         ]
         read_only_fields = ['id']
+
+    def get_qr_code(self, obj):
+        """Return full QR code URL."""
+        if obj.qr_code:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.qr_code.url)
+            return obj.qr_code.url
+        return None
 
 
 class EquipmentDetailSerializer(EquipmentSerializer):

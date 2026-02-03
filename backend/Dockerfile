@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
     libpq-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements-minimal.txt /app/
+COPY requirements.txt /app/
 RUN pip install --upgrade pip
-RUN pip install -r requirements-minimal.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . /app/
@@ -26,7 +27,7 @@ COPY . /app/
 # Create necessary directories
 RUN mkdir -p /app/media /app/staticfiles /app/logs
 
-# Collect static files
+# Collect static files (may fail without DB - that's ok)
 RUN python manage.py collectstatic --noinput || true
 
 # Expose port

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { employeeAPI, departmentAPI } from '../api';
-import axios from 'axios';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { employeeAPI, departmentAPI, api } from '../api';
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -12,11 +11,7 @@ function Employees() {
   const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    loadData();
-  }, [searchTerm, selectedDepartment]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const params = {};
       if (searchTerm) params.search = searchTerm;
@@ -34,11 +29,29 @@ function Employees() {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
       setLoading(false);
     }
-  };
+  }, [searchTerm, selectedDepartment]);
 
-  const handleExportCSV = () => {
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-    window.open(`${API_BASE_URL}/employees/export_csv/`, '_blank');
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleExportCSV = async () => {
+    try {
+      const response = await api.get('/employees/export_csv/', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'employees_export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('CSV export xatolik:', error);
+      alert('CSV eksport qilishda xatolik yuz berdi');
+    }
   };
 
   const handleImportCSV = async (event) => {
@@ -71,8 +84,7 @@ function Employees() {
     formData.append('file', file);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-      const response = await axios.post(`${API_BASE_URL}/employees/import_csv/`, formData, {
+      const response = await api.post('/employees/import_csv/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

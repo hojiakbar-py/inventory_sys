@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { equipmentAPI, equipmentCategoryAPI } from '../api';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { equipmentAPI, equipmentCategoryAPI, api } from '../api';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import InvoiceScanner from './InvoiceScanner';
 
 function Equipment() {
@@ -17,11 +16,7 @@ function Equipment() {
   const [scannedItems, setScannedItems] = useState(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    loadData();
-  }, [searchTerm, selectedCategory, selectedStatus]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const params = {};
       if (searchTerm) params.search = searchTerm;
@@ -40,7 +35,11 @@ function Equipment() {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
       setLoading(false);
     }
-  };
+  }, [searchTerm, selectedCategory, selectedStatus]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -53,9 +52,23 @@ function Equipment() {
     return <span className={`badge ${statusInfo.class}`}>{statusInfo.label}</span>;
   };
 
-  const handleExportCSV = () => {
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-    window.open(`${API_BASE_URL}/equipment/export_csv/`, '_blank');
+  const handleExportCSV = async () => {
+    try {
+      const response = await api.get('/equipment/export_csv/', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'equipment_export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('CSV export xatolik:', error);
+      alert('CSV eksport qilishda xatolik yuz berdi');
+    }
   };
 
   const handleImportCSV = async (event) => {
@@ -88,8 +101,7 @@ function Equipment() {
     formData.append('file', file);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-      const response = await axios.post(`${API_BASE_URL}/equipment/import_csv/`, formData, {
+      const response = await api.post('/equipment/import_csv/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -139,6 +151,7 @@ function Equipment() {
         warranty_expiry: item.warranty_months
           ? new Date(Date.now() + item.warranty_months * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
           : null,
+        notes: item.description || '',
       };
 
       await equipmentAPI.create(equipmentData);

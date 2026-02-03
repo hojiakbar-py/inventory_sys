@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../api';
 import '../App.css';
 
 function Profile() {
@@ -35,13 +35,7 @@ function Profile() {
   });
   const [otpLoading, setOtpLoading] = useState(false);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       navigate('/login');
@@ -50,11 +44,7 @@ function Profile() {
 
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/auth/me/`, {
-        headers: {
-          'Authorization': `Token ${token}`
-        }
-      });
+      const response = await api.get('/auth/me/');
 
       setUserData(response.data);
       setFormData({
@@ -73,7 +63,11 @@ function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const handleChange = (e) => {
     setFormData({
@@ -87,23 +81,13 @@ function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      navigate('/login');
-      return;
-    }
 
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      const response = await axios.patch(`${API_BASE_URL}/auth/update-profile/`, formData, {
-        headers: {
-          'Authorization': `Token ${token}`
-        }
-      });
+      const response = await api.patch('/auth/update-profile/', formData);
 
       setUserData(response.data);
       setSuccess('Ma\'lumotlar muvaffaqiyatli yangilandi!');
@@ -137,7 +121,7 @@ function Profile() {
     setSuccess('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/request-password-change-otp/`, {
+      const response = await api.post('/auth/request-password-change-otp/', {
         email: userData.email
       });
 
@@ -173,7 +157,7 @@ function Profile() {
     setSuccess('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/verify-otp/`, {
+      const response = await api.post('/auth/verify-otp/', {
         email: userData.email,
         otp_code: otpData.otp_code
       });
@@ -209,7 +193,7 @@ function Profile() {
     setSuccess('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/change-password-with-otp/`, {
+      const response = await api.post('/auth/change-password-with-otp/', {
         email: userData.email,
         otp_code: verifiedOtpCode,
         new_password: otpData.new_password,
@@ -236,18 +220,10 @@ function Profile() {
   };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('authToken');
-
-    if (token) {
-      try {
-        await axios.post(`${API_BASE_URL}/auth/logout/`, {}, {
-          headers: {
-            'Authorization': `Token ${token}`
-          }
-        });
-      } catch (err) {
-        console.error('Logout error:', err);
-      }
+    try {
+      await api.post('/auth/logout/');
+    } catch (err) {
+      console.error('Logout error:', err);
     }
 
     localStorage.removeItem('authToken');

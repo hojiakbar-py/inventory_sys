@@ -1,4 +1,4 @@
-"""
+﻿"""
 Views for Inventory Management System.
 
 This module contains API views using Django REST Framework ViewSets.
@@ -441,12 +441,18 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         Returns:
             Filtered QuerySet of employees
         """
-        queryset = Employee.objects.select_related('department')
+        queryset = Employee.objects.select_related('department', 'branch')
 
         # Search filter
         search = self.request.query_params.get('search', None)
         if search:
-            queryset = EmployeeService.search_employees(search)
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(middle_name__icontains=search) |
+                Q(employee_id__icontains=search) |
+                Q(email__icontains=search)
+            )
 
         # Department filter
         department = self.request.query_params.get('department', None)
@@ -473,7 +479,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         """Set last_modified_by when updating employee."""
         serializer.save(last_modified_by=self.request.user)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def export_csv(self, request):
         """
         Export employees to CSV file.
@@ -551,14 +557,29 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             updated_count = 0
             errors = []
 
+            # Get or create a default branch for imports
+            default_branch = Branch.objects.filter(is_active=True).first()
+            if not default_branch:
+                return Response(
+                    {'error': 'Tizimda filial mavjud emas. Avval filial yarating.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             for row_num, row in enumerate(reader, start=2):
                 try:
+                    # Get branch from CSV or use default
+                    branch_name = (row.get('branch') or row.get('Filial') or '').strip()
+                    branch = default_branch
+                    if branch_name:
+                        branch = Branch.objects.filter(name__icontains=branch_name, is_active=True).first() or default_branch
+
                     # Get or create department
                     department_name = (row.get('department') or row.get('Bo\'lim') or '').strip()
                     department = None
                     if department_name:
                         department, _ = Department.objects.get_or_create(
                             name=department_name,
+                            branch=branch,
                             defaults={
                                 'description': f'{department_name}',
                                 'created_by': request.user
@@ -602,6 +623,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                             'first_name': (row.get('first_name') or row.get('Ism') or '').strip(),
                             'last_name': (row.get('last_name') or row.get('Familiya') or '').strip(),
                             'middle_name': (row.get('middle_name') or row.get('Otasining ismi') or '').strip(),
+                            'branch': branch,
                             'department': department,
                             'position': (row.get('position') or row.get('Lavozim') or '').strip(),
                             'email': email_val,
@@ -679,12 +701,12 @@ class EquipmentCategoryViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        """Set created_by when creating category."""
-        serializer.save(created_by=self.request.user)
+        """Save new category."""
+        serializer.save()
 
     def perform_update(self, serializer):
-        """Set last_modified_by when updating category."""
-        serializer.save(last_modified_by=self.request.user)
+        """Update category."""
+        serializer.save()
 
 
 # ============================================
@@ -733,12 +755,18 @@ class EquipmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get equipment with optional filtering."""
-        queryset = Equipment.objects.select_related('category').filter(is_active=True)
+        queryset = Equipment.objects.select_related('category', 'branch').filter(is_active=True)
 
         # Search filter
         search = self.request.query_params.get('search', None)
         if search:
-            queryset = EquipmentService.search_equipment(search)
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(inventory_number__icontains=search) |
+                Q(serial_number__icontains=search) |
+                Q(manufacturer__icontains=search) |
+                Q(model__icontains=search)
+            )
 
         # Category filter
         category = self.request.query_params.get('category', None)
@@ -748,7 +776,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
         # Status filter
         status_filter = self.request.query_params.get('status', None)
         if status_filter:
-            queryset = EquipmentService.get_equipment_by_status(status_filter)
+            queryset = queryset.filter(status=status_filter)
 
         return queryset.order_by('-created_at')
 
@@ -910,13 +938,19 @@ class EquipmentViewSet(viewsets.ModelViewSet):
         equipment = self.get_object()
         check_type = request.data.get('check_type', 'SCHEDULED')
         notes = request.data.get('notes', '')
+        location = request.data.get('location', '')
+        condition = request.data.get('condition', '')
+        is_functional = request.data.get('is_functional', True)
 
         try:
             check = InventoryCheckService.create_check(
                 equipment=equipment,
                 check_type=check_type,
                 user=request.user,
-                notes=notes
+                notes=notes,
+                location=location,
+                condition=condition,
+                is_functional=is_functional,
             )
 
             serializer = InventoryCheckSerializer(check)
@@ -943,7 +977,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
         serializer = EquipmentDetailSerializer(equipment)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def export_csv(self, request):
         """
         Export equipment to CSV file.
@@ -980,7 +1014,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                 equipment.get_status_display(),
                 equipment.location or '',
                 equipment.warranty_expiry or '',
-                equipment.description or ''
+                equipment.notes or ''
             ])
 
         return response
@@ -1021,10 +1055,24 @@ class EquipmentViewSet(viewsets.ModelViewSet):
             updated_count = 0
             errors = []
 
+            # Get or create a default branch for imports
+            default_branch = Branch.objects.filter(is_active=True).first()
+            if not default_branch:
+                return Response(
+                    {'error': 'Tizimda filial mavjud emas. Avval filial yarating.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             logger.info(f"CSV import started for equipment. File: {csv_file.name}")
 
             for row_num, row in enumerate(reader, start=2):
                 try:
+                    # Get branch from CSV or use default
+                    branch_name = (row.get('branch') or row.get('Filial') or '').strip()
+                    branch = default_branch
+                    if branch_name:
+                        branch = Branch.objects.filter(name__icontains=branch_name, is_active=True).first() or default_branch
+
                     # Get or create category
                     category_name = (row.get('category') or row.get('Kategoriya') or '').strip()
                     category = None
@@ -1033,7 +1081,6 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                             name=category_name,
                             defaults={
                                 'description': f'{category_name} kategoriyasi',
-                                'created_by': request.user
                             }
                         )
 
@@ -1101,6 +1148,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                         inventory_number=inventory_number,
                         defaults={
                             'name': (row.get('name') or row.get('Nomi') or '').strip(),
+                            'branch': branch,
                             'category': category,
                             'serial_number': serial_number,
                             'manufacturer': (row.get('manufacturer') or row.get('Ishlab chiqaruvchi') or '').strip(),
@@ -1111,7 +1159,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                             'status': status_value,
                             'location': (row.get('location') or row.get('Joylashuvi') or '').strip(),
                             'warranty_expiry': warranty_expiry,
-                            'description': (row.get('description') or row.get('Tavsif') or '').strip(),
+                            'notes': (row.get('description') or row.get('Tavsif') or '').strip(),
                             'last_modified_by': request.user
                         }
                     )
@@ -1219,7 +1267,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
 
             # Prepare prompt
             prompt = """
-Bu nakladnoy (накладная) rasmidan qurilmalar ma'lumotlarini chiqarib bering.
+Bu nakladnoy (Ð½Ð°ÐºÐ»Ð°Ð´Ð½Ð°Ñ) rasmidan qurilmalar ma'lumotlarini chiqarib bering.
 
 Quyidagi JSON formatda qaytaring (faqat JSON, boshqa matn yo'q):
 {
@@ -1245,9 +1293,9 @@ MUHIM qoidalar:
 3. Agar seriya raqami yo'q bo'lsa, null yoki empty string qo'ying
 4. price - faqat raqam (number), string emas
 5. quantity - faqat raqam (number), string emas
-6. Agar miqdor (кол-во/qty) ko'rsatilmagan bo'lsa, 1 qo'ying
+6. Agar miqdor (ÐºÐ¾Ð»-Ð²Ð¾/qty) ko'rsatilmagan bo'lsa, 1 qo'ying
 7. Kategoriyani mahsulot nomidan aniqlang
-8. Kafolat muddati (гарантия) - faqat raqam (number) oylar sonida
+8. Kafolat muddati (Ð³Ð°Ñ€Ð°Ð½Ñ‚Ð¸Ñ) - faqat raqam (number) oylar sonida
 9. O'zbek, rus, ingliz tillarini tushunasiz
 10. FAQAT to'g'ri JSON qaytaring, boshqa hech narsa yo'q!
 """
@@ -1436,7 +1484,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         # Get inventory checks up to that date
         inventory_checks = InventoryCheck.objects.filter(
             check_date__lte=date_obj
-        ).select_related('equipment', 'performed_by').order_by('-check_date')
+        ).select_related('equipment', 'checked_by').order_by('-check_date')
 
         # Get maintenance records up to that date
         maintenance_records = MaintenanceRecord.objects.filter(
@@ -1473,68 +1521,30 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         # Get recent assignments (last 10)
         try:
-            recent_assignments_qs = Assignment.objects.select_related(
+            recent_assignments = Assignment.objects.select_related(
                 'equipment', 'employee'
             ).order_by('-assigned_date')[:10]
-            recent_assignments = [
-                {
-                    'id': a.id,
-                    'equipment_name': a.equipment.name,
-                    'employee_name': a.employee.get_full_name(),
-                    'assigned_date': a.assigned_date,
-                    'return_date': a.return_date,
-                    'is_active': a.return_date is None,
-                    'is_approved': a.is_approved
-                }
-                for a in recent_assignments_qs
-            ]
         except Exception as e:
             logger.warning(f"Error fetching recent assignments: {e}")
-            recent_assignments = []
+            recent_assignments = Assignment.objects.none()
 
         # Get recent inventory checks (last 10)
         try:
-            recent_checks_qs = InventoryCheck.objects.select_related(
+            recent_checks = InventoryCheck.objects.select_related(
                 'equipment', 'checked_by'
             ).order_by('-check_date')[:10]
-            recent_checks = [
-                {
-                    'id': c.id,
-                    'equipment_name': c.equipment.name,
-                    'check_date': c.check_date,
-                    'checked_by_name': c.checked_by.username if c.checked_by else None,
-                    'is_functional': c.is_functional,
-                    'requires_maintenance': c.requires_maintenance,
-                    'employee_confirmed': c.employee_confirmed
-                }
-                for c in recent_checks_qs
-            ]
         except Exception as e:
             logger.warning(f"Error fetching recent checks: {e}")
-            recent_checks = []
+            recent_checks = InventoryCheck.objects.none()
 
         # Get pending maintenance (scheduled or in progress)
         try:
-            pending_maintenance_qs = MaintenanceRecord.objects.filter(
+            pending_maintenance = MaintenanceRecord.objects.filter(
                 status__in=[MaintenanceStatus.SCHEDULED, MaintenanceStatus.IN_PROGRESS]
             ).select_related('equipment').order_by('-scheduled_date')[:10]
-            pending_maintenance = [
-                {
-                    'id': m.id,
-                    'equipment_name': m.equipment.name,
-                    'maintenance_type': m.maintenance_type,
-                    'status': m.status,
-                    'status_display': m.get_status_display(),
-                    'priority': m.priority,
-                    'priority_display': m.get_priority_display(),
-                    'performed_date': m.performed_date,
-                    'actual_cost': float(m.actual_cost) if m.actual_cost else 0
-                }
-                for m in pending_maintenance_qs
-            ]
         except Exception as e:
             logger.warning(f"Error fetching pending maintenance: {e}")
-            pending_maintenance = []
+            pending_maintenance = MaintenanceRecord.objects.none()
 
         stats = {
             'total_equipment': total_equipment,
@@ -1634,7 +1644,7 @@ class InventoryCheckViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get inventory checks with optional filtering."""
-        queryset = InventoryCheck.objects.select_related('equipment', 'performed_by')
+        queryset = InventoryCheck.objects.select_related('equipment', 'checked_by')
 
         # Equipment filter
         equipment = self.request.query_params.get('equipment', None)
@@ -1758,7 +1768,7 @@ class MaintenanceRecordViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get maintenance records with optional filtering."""
-        queryset = MaintenanceRecord.objects.select_related('equipment', 'assigned_to')
+        queryset = MaintenanceRecord.objects.select_related('equipment', 'technician', 'created_by')
 
         # Equipment filter
         equipment = self.request.query_params.get('equipment', None)
@@ -2413,3 +2423,4 @@ def change_password_with_otp(request):
         'message': 'Parol muvaffaqiyatli o\'zgartirildi',
         'success': True
     }, status=status.HTTP_200_OK)
+

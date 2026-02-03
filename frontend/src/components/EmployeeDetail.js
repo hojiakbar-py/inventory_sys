@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { employeeAPI } from '../api';
 
@@ -9,30 +9,33 @@ function EmployeeDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadEmployee();
-  }, [id]);
-
-  const loadEmployee = async () => {
+  const loadEmployee = useCallback(async () => {
     try {
-      // id employee_id yoki database ID bo'lishi mumkin
-      const response = await employeeAPI.getAll({ search: id });
-
-      if (response.data.results && response.data.results.length > 0) {
-        setEmployee(response.data.results[0]);
-      } else if (response.data && response.data.length > 0) {
-        setEmployee(response.data[0]);
-      } else {
-        setError('Hodim topilmadi');
-      }
-
+      // Avval ID bo'yicha to'g'ridan-to'g'ri olishga harakat qilamiz
+      const response = await employeeAPI.get(id);
+      setEmployee(response.data);
       setLoading(false);
-    } catch (error) {
-      console.error('Hodimni yuklashda xatolik:', error);
-      setError('Hodimni yuklashda xatolik yuz berdi');
+    } catch (err) {
+      // Agar ID bo'yicha topilmasa, search orqali qidiramiz
+      try {
+        const searchResponse = await employeeAPI.getAll({ search: id });
+        const results = searchResponse.data.results || searchResponse.data;
+        if (results && results.length > 0) {
+          setEmployee(results[0]);
+        } else {
+          setError('Hodim topilmadi');
+        }
+      } catch (searchErr) {
+        console.error('Hodimni yuklashda xatolik:', searchErr);
+        setError('Hodimni yuklashda xatolik yuz berdi');
+      }
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadEmployee();
+  }, [loadEmployee]);
 
   if (loading) {
     return (

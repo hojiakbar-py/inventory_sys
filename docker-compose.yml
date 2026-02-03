@@ -1,8 +1,17 @@
 # ==========================================
 # INVENTORY SYSTEM - DEVELOPMENT DOCKER COMPOSE
 # ==========================================
-# Bu fayl faqat DEVELOPMENT uchun!
-# Production uchun docker-compose.prod.yml ishlating
+# Ishga tushirish / Run:
+#   docker-compose up -d --build
+#
+# Birinchi marta superuser yaratish:
+#   docker-compose exec backend python manage.py createsuperuser
+#
+# Loglarni ko'rish:
+#   docker-compose logs -f backend
+#
+# To'xtatish / Stop:
+#   docker-compose down
 # ==========================================
 
 services:
@@ -14,15 +23,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${DB_NAME:-inventory_db}
-      - POSTGRES_USER=${DB_USER:-inventory_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-dev_password_change_me}
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass_2024
     ports:
       - "5433:5432"
     networks:
       - inventory_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-inventory_user}"]
+      test: ["CMD-SHELL", "pg_isready -U inventory_user -d inventory_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,9 +44,9 @@ services:
     container_name: inventory_backend
     restart: unless-stopped
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn inventory_system.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+             gunicorn inventory_system.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
@@ -47,15 +56,12 @@ services:
     networks:
       - inventory_network
     env_file:
-      - ./backend/.env
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
+      - ./backend/.env.docker
     depends_on:
       db:
         condition: service_healthy
 
-  # React Frontend (Development mode)
+  # React Frontend (Development mode with hot reload)
   frontend:
     image: node:20-alpine
     container_name: inventory_frontend
@@ -70,13 +76,13 @@ services:
     networks:
       - inventory_network
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000/api}
+      - REACT_APP_API_URL=http://localhost:8000/api
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:
       - backend
 
-  # Redis (Optional - for caching)
+  # Redis (for caching and Celery)
   redis:
     image: redis:7-alpine
     container_name: inventory_redis
@@ -88,8 +94,8 @@ services:
     volumes:
       - redis_data:/data
 
-  # Nginx (Development - optional)
-  # Production uchun docker-compose.prod.yml ishlating
+  # Nginx Reverse Proxy (optional - for production-like testing)
+  # Ishga tushirish: docker-compose --profile with-nginx up -d
   nginx:
     image: nginx:alpine
     container_name: inventory_nginx
@@ -99,7 +105,7 @@ services:
     networks:
       - inventory_network
     volumes:
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
