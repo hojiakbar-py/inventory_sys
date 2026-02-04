@@ -69,6 +69,7 @@ services:
       - DJANGO_SETTINGS_MODULE=inventory_system.settings
       - DB_HOST=db
       - DB_PORT=5432
+      - FRONTEND_URL=http://192.168.0.129
     networks:
       - inventory_network_prod
     depends_on:

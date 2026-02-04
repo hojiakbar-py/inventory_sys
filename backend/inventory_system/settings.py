@@ -237,7 +237,7 @@ OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
 # Frontend URL (QR kodlar uchun)
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+FRONTEND_URL = config('FRONTEND_URL', default='http://192.168.0.129')
 
 # Security sozlamalari (Production uchun)
 if not DEBUG:
