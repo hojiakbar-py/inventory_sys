@@ -141,6 +141,13 @@ CORS_ALLOWED_ORIGINS = config(
 
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF sozlamalari
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost,http://127.0.0.1,http://192.168.0.129,http://10.157.164.108,https://inventory-sys.uz',
+    cast=Csv()
+)
+
 # REST Framework sozlamalari
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -240,5 +247,5 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    CSRF_TRUSTED_ORIGINS = ['http://192.168.0.129', 'http://localhost']
+    X_FRAME_OPTIONS = 'DENY'
 
