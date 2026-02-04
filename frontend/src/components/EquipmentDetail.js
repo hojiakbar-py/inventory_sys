@@ -235,24 +235,30 @@ function EquipmentDetail() {
           <p><strong>Bo'lim:</strong> {equipment.current_assignment.department || 'N/A'}</p>
           <p><strong>Tayinlangan:</strong> {new Date(equipment.current_assignment.assigned_date).toLocaleDateString('uz-UZ')}</p>
           <p><strong>Muddat:</strong> {equipment.current_assignment.days_assigned} kun</p>
-          <button className="btn btn-danger" onClick={() => setShowReturnForm(!showReturnForm)}>
-            Qaytarib Olish
-          </button>
+          {localStorage.getItem('authToken') && (
+            <button className="btn btn-danger" onClick={() => setShowReturnForm(!showReturnForm)}>
+              Qaytarib Olish
+            </button>
+          )}
         </div>
       )}
 
       <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        {!equipment.current_assignment && equipment.status === 'AVAILABLE' && (
-          <button className="btn btn-success" onClick={() => setShowAssignForm(!showAssignForm)}>
-            Hodimga Tayinlash
-          </button>
+        {localStorage.getItem('authToken') && (
+          <>
+            {!equipment.current_assignment && equipment.status === 'AVAILABLE' && (
+              <button className="btn btn-success" onClick={() => setShowAssignForm(!showAssignForm)}>
+                Hodimga Tayinlash
+              </button>
+            )}
+            <button className="btn btn-primary" onClick={() => setShowInventoryForm(!showInventoryForm)}>
+              Inventarizatsiya Tekshiruvi
+            </button>
+            <button className="btn btn-warning" onClick={() => setShowMaintenanceForm(!showMaintenanceForm)}>
+              Ta'mirlash Yozuvi
+            </button>
+          </>
         )}
-        <button className="btn btn-primary" onClick={() => setShowInventoryForm(!showInventoryForm)}>
-          Inventarizatsiya Tekshiruvi
-        </button>
-        <button className="btn btn-warning" onClick={() => setShowMaintenanceForm(!showMaintenanceForm)}>
-          Ta'mirlash Yozuvi
-        </button>
       </div>
 
       {showAssignForm && (

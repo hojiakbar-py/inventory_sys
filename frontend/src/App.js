@@ -122,6 +122,10 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes - No Sidebar/Auth required for viewing via QR */}
+        <Route path="/equipment/:id" element={<EquipmentDetail />} />
+        <Route path="/employee/:id" element={<EmployeeDetail />} />
+
         {/* Auth Routes - No Sidebar */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
