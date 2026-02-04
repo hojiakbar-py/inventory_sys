@@ -582,6 +582,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                             name=department_name,
                             branch=branch,
                             defaults={
+                                'code': department_name.upper().replace(' ', '_')[:20],
                                 'description': f'{department_name}',
                                 'created_by': request.user
                             }
@@ -1081,6 +1082,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                         category, _ = EquipmentCategory.objects.get_or_create(
                             name=category_name,
                             defaults={
+                                'code': category_name.upper().replace(' ', '_')[:20],
                                 'description': f'{category_name} kategoriyasi',
                             }
                         )
