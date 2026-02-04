@@ -58,12 +58,14 @@ api.interceptors.response.use(
           break;
         case 403:
           console.error('Ruxsat yo\'q');
+          alert("Sizda bu amalni bajarish uchun ruxsat yo'q! (403 Forbidden)");
           break;
         case 404:
           console.error('Topilmadi');
           break;
         case 500:
           console.error('Server xatosi');
+          alert("Serverda ichki xatolik yuz berdi! (500 Internal Server Error)");
           break;
         default:
           console.error('Xatolik:', error.response.data);
@@ -71,6 +73,7 @@ api.interceptors.response.use(
     } else if (error.request) {
       // Request was sent but no response received (network error)
       console.error('Tarmoq xatosi. Internet aloqasini tekshiring.');
+      alert("Internet aloqasi yo'q yoki server ishlamayapti!");
       error.message = 'Tarmoq xatosi. Serverga ulanib bo\'lmadi.';
     } else {
       // Something else happened

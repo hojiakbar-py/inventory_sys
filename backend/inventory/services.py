@@ -28,6 +28,8 @@ from django.db.models import Q, QuerySet, Count, Sum, Avg
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import (
     Branch, Department, Employee, EquipmentCategory, Equipment,
@@ -1553,6 +1555,18 @@ class OTPService:
 
         # TODO: Implement email sending
         # send_otp_email(user.email, otp_record.otp_code)
+        
+        try:
+            send_mail(
+                subject='Parolni tiklash uchun kod',
+                message=f'Sizning tasdiqlash kodingiz: {otp_record.otp_code}\n\nBu kod 10 daqiqa davomida amal qiladi.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            # Log error but don't stop flow (or handle as needed)
+            print(f"Email yuborishda xatolik: {e}")
 
         return otp_record
 
