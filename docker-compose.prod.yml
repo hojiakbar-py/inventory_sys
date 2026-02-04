@@ -15,7 +15,7 @@ services:
     container_name: inventory_db_prod
     restart: always
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     env_file:
       - ./backend/.env.production
