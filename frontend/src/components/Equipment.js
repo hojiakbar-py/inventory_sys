@@ -14,6 +14,7 @@ function Equipment() {
   const [importResult, setImportResult] = useState(null);
   const [showInvoiceScanner, setShowInvoiceScanner] = useState(false);
   const [scannedItems, setScannedItems] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [branches, setBranches] = useState([]);
   const [newEquipment, setNewEquipment] = useState({
