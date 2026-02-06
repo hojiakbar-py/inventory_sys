@@ -133,16 +133,16 @@ function QRScanner() {
                     📋 Asosiy Ma'lumotlar
                   </h4>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Nomi:</strong><br/>{scanResult.data.name}
+                    <strong>Nomi:</strong><br />{scanResult.data.name}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Inventar #:</strong><br/>{scanResult.data.inventory_number}
+                    <strong>Inventar #:</strong><br />{scanResult.data.inventory_number}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Seriya #:</strong><br/>{scanResult.data.serial_number || 'N/A'}
+                    <strong>Seriya #:</strong><br />{scanResult.data.serial_number || 'N/A'}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Kategoriya:</strong><br/>{scanResult.data.category_name || 'N/A'}
+                    <strong>Kategoriya:</strong><br />{scanResult.data.category_name || 'N/A'}
                   </p>
                 </div>
                 <div style={{
@@ -155,13 +155,13 @@ function QRScanner() {
                     🏭 Texnik Ma'lumotlar
                   </h4>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Ishlab chiqaruvchi:</strong><br/>{scanResult.data.manufacturer || 'N/A'}
+                    <strong>Ishlab chiqaruvchi:</strong><br />{scanResult.data.manufacturer || 'N/A'}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Model:</strong><br/>{scanResult.data.model || 'N/A'}
+                    <strong>Model:</strong><br />{scanResult.data.model || 'N/A'}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Holati:</strong><br/>
+                    <strong>Holati:</strong><br />
                     <span style={{
                       padding: '3px 8px',
                       borderRadius: '4px',
@@ -174,12 +174,12 @@ function QRScanner() {
                   </p>
                   {scanResult.data.purchase_date && (
                     <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                      <strong>Xarid sanasi:</strong><br/>{new Date(scanResult.data.purchase_date).toLocaleDateString('uz-UZ')}
+                      <strong>Xarid sanasi:</strong><br />{new Date(scanResult.data.purchase_date).toLocaleDateString('uz-UZ')}
                     </p>
                   )}
                   {scanResult.data.purchase_price && (
                     <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                      <strong>Xarid narxi:</strong><br/>{Number(scanResult.data.purchase_price).toLocaleString('uz-UZ')} so'm
+                      <strong>Xarid narxi:</strong><br />{Number(scanResult.data.purchase_price).toLocaleString('uz-UZ')} so'm
                     </p>
                   )}
                 </div>
@@ -254,16 +254,16 @@ function QRScanner() {
                     👤 Shaxsiy Ma'lumotlar
                   </h4>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>F.I.O:</strong><br/>{scanResult.data.full_name}
+                    <strong>F.I.O:</strong><br />{scanResult.data.full_name}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Hodim ID:</strong><br/>{scanResult.data.employee_id}
+                    <strong>Hodim ID:</strong><br />{scanResult.data.employee_id}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Lavozim:</strong><br/>{scanResult.data.position}
+                    <strong>Lavozim:</strong><br />{scanResult.data.position}
                   </p>
                   <p style={{ marginBottom: 0, fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Bo'lim:</strong><br/>{scanResult.data.department_name || 'N/A'}
+                    <strong>Bo'lim:</strong><br />{scanResult.data.department_name || 'N/A'}
                   </p>
                 </div>
                 <div style={{
@@ -276,13 +276,13 @@ function QRScanner() {
                     📞 Aloqa Ma'lumotlari
                   </h4>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)', wordBreak: 'break-all' }}>
-                    <strong>Email:</strong><br/>{scanResult.data.email || 'N/A'}
+                    <strong>Email:</strong><br />{scanResult.data.email || 'N/A'}
                   </p>
                   <p style={{ marginBottom: '8px', fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Telefon:</strong><br/>{scanResult.data.phone || 'N/A'}
+                    <strong>Telefon:</strong><br />{scanResult.data.phone || 'N/A'}
                   </p>
                   <p style={{ marginBottom: 0, fontSize: 'clamp(0.9rem, 2.5vw, 1rem)' }}>
-                    <strong>Ishga kirgan:</strong><br/>{new Date(scanResult.data.hire_date).toLocaleDateString('uz-UZ')}
+                    <strong>Ishga kirgan:</strong><br />{new Date(scanResult.data.hire_date).toLocaleDateString('uz-UZ')}
                   </p>
                 </div>
               </div>
