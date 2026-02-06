@@ -14,6 +14,19 @@ function Equipment() {
   const [importResult, setImportResult] = useState(null);
   const [showInvoiceScanner, setShowInvoiceScanner] = useState(false);
   const [scannedItems, setScannedItems] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newEquipment, setNewEquipment] = useState({
+    name: '',
+    inventory_number: '',
+    serial_number: '',
+    category: '',
+    manufacturer: '',
+    model: '',
+    status: 'AVAILABLE',
+    purchase_price: '',
+    purchase_date: ''
+  });
   const fileInputRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -179,6 +192,45 @@ function Equipment() {
     }
   };
 
+  const handleAddEquipment = async (e) => {
+    e.preventDefault();
+    if (!newEquipment.name || !newEquipment.inventory_number) {
+      alert('Qurilma nomi va Inventar raqami majburiy!');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      Object.keys(newEquipment).forEach(key => {
+        if (newEquipment[key]) {
+          formData.append(key, newEquipment[key]);
+        }
+      });
+
+      await equipmentAPI.create(formData);
+      setShowAddModal(false);
+      setNewEquipment({
+        name: '',
+        inventory_number: '',
+        serial_number: '',
+        category: '',
+        manufacturer: '',
+        model: '',
+        status: 'AVAILABLE',
+        purchase_price: '',
+        purchase_date: ''
+      });
+      loadData();
+      alert('Qurilma muvaffaqiyatli qo\'shildi!');
+    } catch (error) {
+      console.error('Add equipment error:', error);
+      alert(error.response?.data?.error || 'Qurilma qo\'shishda xatolik yuz berdi');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -222,6 +274,13 @@ function Equipment() {
               style={{ backgroundColor: '#8b5cf6' }}
             >
               📄 Nakladnoy Skanerlash
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary"
+              style={{ backgroundColor: '#f59e0b' }}
+            >
+              ➕ Qurilma Qo'shish
             </button>
           </div>
         </div>
@@ -304,59 +363,59 @@ function Equipment() {
         </div>
         <div className="table-wrapper">
           <table>
-          <thead>
-            <tr>
-              <th>Inventar #</th>
-              <th>Nomi</th>
-              <th>Kategoriya</th>
-              <th>Ishlab chiqaruvchi</th>
-              <th>Model</th>
-              <th>Holati</th>
-              <th>Joriy foydalanuvchi</th>
-              <th>Amallar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {equipment.length > 0 ? (
-              equipment.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.inventory_number}</td>
-                  <td>{item.name}</td>
-                  <td>{item.category_name || 'N/A'}</td>
-                  <td>{item.manufacturer || '-'}</td>
-                  <td>{item.model || '-'}</td>
-                  <td>{getStatusBadge(item.status)}</td>
-                  <td>
-                    {item.current_assignment ? (
-                      <div>
-                        <strong>{item.current_assignment.employee}</strong>
-                        <br />
-                        <small>{item.current_assignment.department || ''}</small>
-                        <br />
-                        <small style={{color: '#888'}}>
-                          {item.current_assignment.days_assigned} kun
-                        </small>
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>
-                    <Link to={`/equipment/${item.id}`} className="btn btn-primary" style={{fontSize: '12px', padding: '5px 10px'}}>
-                      Batafsil
-                    </Link>
+            <thead>
+              <tr>
+                <th>Inventar #</th>
+                <th>Nomi</th>
+                <th>Kategoriya</th>
+                <th>Ishlab chiqaruvchi</th>
+                <th>Model</th>
+                <th>Holati</th>
+                <th>Joriy foydalanuvchi</th>
+                <th>Amallar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {equipment.length > 0 ? (
+                equipment.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.inventory_number}</td>
+                    <td>{item.name}</td>
+                    <td>{item.category_name || 'N/A'}</td>
+                    <td>{item.manufacturer || '-'}</td>
+                    <td>{item.model || '-'}</td>
+                    <td>{getStatusBadge(item.status)}</td>
+                    <td>
+                      {item.current_assignment ? (
+                        <div>
+                          <strong>{item.current_assignment.employee}</strong>
+                          <br />
+                          <small>{item.current_assignment.department || ''}</small>
+                          <br />
+                          <small style={{ color: '#888' }}>
+                            {item.current_assignment.days_assigned} kun
+                          </small>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      <Link to={`/equipment/${item.id}`} className="btn btn-primary" style={{ fontSize: '12px', padding: '5px 10px' }}>
+                        Batafsil
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center' }}>
+                    Qurilmalar topilmadi
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" style={{ textAlign: 'center' }}>
-                  Qurilmalar topilmadi
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -394,38 +453,38 @@ function Equipment() {
                   marginBottom: '15px'
                 }}>
                   <div>
-                    <strong>Nomi:</strong><br/>
+                    <strong>Nomi:</strong><br />
                     {item.name}
                   </div>
                   <div>
-                    <strong>Miqdor:</strong><br/>
+                    <strong>Miqdor:</strong><br />
                     {item.quantity}
                   </div>
                   <div>
-                    <strong>Narx:</strong><br/>
+                    <strong>Narx:</strong><br />
                     {item.price ? item.price.toLocaleString('uz-UZ') + ' so\'m' : 'N/A'}
                   </div>
                   {item.manufacturer && (
                     <div>
-                      <strong>Ishlab chiqaruvchi:</strong><br/>
+                      <strong>Ishlab chiqaruvchi:</strong><br />
                       {item.manufacturer}
                     </div>
                   )}
                   {item.model && (
                     <div>
-                      <strong>Model:</strong><br/>
+                      <strong>Model:</strong><br />
                       {item.model}
                     </div>
                   )}
                   {item.warranty_months && (
                     <div>
-                      <strong>Kafolat:</strong><br/>
+                      <strong>Kafolat:</strong><br />
                       {item.warranty_months} oy
                     </div>
                   )}
                   {item.serial_numbers && item.serial_numbers.length > 0 && (
                     <div>
-                      <strong>Seriya raqamlari:</strong><br/>
+                      <strong>Seriya raqamlari:</strong><br />
                       {item.serial_numbers.join(', ')}
                     </div>
                   )}
@@ -462,6 +521,154 @@ function Equipment() {
           >
             Yopish
           </button>
+        </div>
+      )}
+
+      {/* Add Equipment Modal */}
+      {showAddModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h2 style={{ marginBottom: '20px' }}>➕ Yangi Qurilma Qo'shish</h2>
+            <form onSubmit={handleAddEquipment}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="form-group">
+                  <label>Qurilma nomi *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newEquipment.name}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })}
+                    placeholder="Masalan: Dell Monitor"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Inventar raqami *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newEquipment.inventory_number}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, inventory_number: e.target.value })}
+                    placeholder="Masalan: INV-001"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Seriya raqami</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newEquipment.serial_number}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, serial_number: e.target.value })}
+                    placeholder="Masalan: SN123456"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Kategoriya</label>
+                  <select
+                    className="form-control"
+                    value={newEquipment.category}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, category: e.target.value })}
+                  >
+                    <option value="">Kategoriyani tanlang</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Ishlab chiqaruvchi</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newEquipment.manufacturer}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, manufacturer: e.target.value })}
+                    placeholder="Masalan: Dell, HP, Lenovo"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Model</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newEquipment.model}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, model: e.target.value })}
+                    placeholder="Masalan: U2422H"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Holat</label>
+                  <select
+                    className="form-control"
+                    value={newEquipment.status}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, status: e.target.value })}
+                  >
+                    <option value="AVAILABLE">Mavjud</option>
+                    <option value="ASSIGNED">Tayinlangan</option>
+                    <option value="MAINTENANCE">Ta'mirlashda</option>
+                    <option value="RETIRED">Chiqarilgan</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Xarid narxi</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={newEquipment.purchase_price}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, purchase_price: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Xarid sanasi</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={newEquipment.purchase_date}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, purchase_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn"
+                  style={{ backgroundColor: '#e5e7eb', color: '#374151' }}
+                  disabled={submitting}
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#10b981' }}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Saqlanmoqda...' : 'Saqlash'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

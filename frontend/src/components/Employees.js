@@ -9,6 +9,17 @@ function Employees() {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({
+    employee_id: '',
+    first_name: '',
+    last_name: '',
+    department: '',
+    position: '',
+    email: '',
+    phone: ''
+  });
   const fileInputRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -100,11 +111,41 @@ function Employees() {
         success: false,
         error: error.response?.data?.error || error.message || 'Import qilishda xatolik yuz berdi'
       });
-    } finally{
+    } finally {
       setImporting(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleAddEmployee = async (e) => {
+    e.preventDefault();
+    if (!newEmployee.employee_id || !newEmployee.first_name || !newEmployee.last_name) {
+      alert('Hodim ID, Ism va Familiya majburiy!');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await employeeAPI.create(newEmployee);
+      setShowAddModal(false);
+      setNewEmployee({
+        employee_id: '',
+        first_name: '',
+        last_name: '',
+        department: '',
+        position: '',
+        email: '',
+        phone: ''
+      });
+      loadData();
+      alert('Hodim muvaffaqiyatli qo\'shildi!');
+    } catch (error) {
+      console.error('Add employee error:', error);
+      alert(error.response?.data?.error || 'Hodim qo\'shishda xatolik yuz berdi');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -145,6 +186,13 @@ function Employees() {
                 disabled={importing}
               />
             </label>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary"
+              style={{ backgroundColor: '#8b5cf6' }}
+            >
+              ➕ Hodim Qo'shish
+            </button>
           </div>
         </div>
 
@@ -213,53 +261,178 @@ function Employees() {
         </div>
         <div className="table-wrapper">
           <table>
-          <thead>
-            <tr>
-              <th>Hodim ID</th>
-              <th>F.I.O</th>
-              <th>Bo'lim</th>
-              <th>Lavozim</th>
-              <th>Email</th>
-              <th>Telefon</th>
-              <th>Qurilmalar</th>
-              <th>Holat</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees.length > 0 ? (
-              employees.map((employee) => (
-                <tr key={employee.id}>
-                  <td>{employee.employee_id}</td>
-                  <td>{employee.full_name}</td>
-                  <td>{employee.department_name || 'N/A'}</td>
-                  <td>{employee.position}</td>
-                  <td>{employee.email || '-'}</td>
-                  <td>{employee.phone || '-'}</td>
-                  <td>
-                    <span className="badge badge-warning">
-                      {employee.current_equipment_count || 0}
-                    </span>
-                  </td>
-                  <td>
-                    {employee.is_active ? (
-                      <span className="badge badge-success">Faol</span>
-                    ) : (
-                      <span className="badge badge-danger">Nofaol</span>
-                    )}
+            <thead>
+              <tr>
+                <th>Hodim ID</th>
+                <th>F.I.O</th>
+                <th>Bo'lim</th>
+                <th>Lavozim</th>
+                <th>Email</th>
+                <th>Telefon</th>
+                <th>Qurilmalar</th>
+                <th>Holat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.length > 0 ? (
+                employees.map((employee) => (
+                  <tr key={employee.id}>
+                    <td>{employee.employee_id}</td>
+                    <td>{employee.full_name}</td>
+                    <td>{employee.department_name || 'N/A'}</td>
+                    <td>{employee.position}</td>
+                    <td>{employee.email || '-'}</td>
+                    <td>{employee.phone || '-'}</td>
+                    <td>
+                      <span className="badge badge-warning">
+                        {employee.current_equipment_count || 0}
+                      </span>
+                    </td>
+                    <td>
+                      {employee.is_active ? (
+                        <span className="badge badge-success">Faol</span>
+                      ) : (
+                        <span className="badge badge-danger">Nofaol</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center' }}>
+                    Hodimlar topilmadi
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" style={{ textAlign: 'center' }}>
-                  Hodimlar topilmadi
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {/* Add Employee Modal */}
+      {showAddModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h2 style={{ marginBottom: '20px' }}>➕ Yangi Hodim Qo'shish</h2>
+            <form onSubmit={handleAddEmployee}>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Hodim ID *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newEmployee.employee_id}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, employee_id: e.target.value })}
+                  placeholder="Masalan: EMP001"
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Ism *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newEmployee.first_name}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, first_name: e.target.value })}
+                  placeholder="Ismni kiriting"
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Familiya *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newEmployee.last_name}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, last_name: e.target.value })}
+                  placeholder="Familiyani kiriting"
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Bo'lim</label>
+                <select
+                  className="form-control"
+                  value={newEmployee.department}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
+                >
+                  <option value="">Bo'limni tanlang</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Lavozim</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newEmployee.position}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                  placeholder="Lavozimni kiriting"
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={newEmployee.email}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label>Telefon</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newEmployee.phone}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                  placeholder="+998 90 123 45 67"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn"
+                  style={{ backgroundColor: '#e5e7eb', color: '#374151' }}
+                  disabled={submitting}
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#10b981' }}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Saqlanmoqda...' : 'Saqlash'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
