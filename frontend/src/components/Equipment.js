@@ -198,8 +198,8 @@ function Equipment() {
 
   const handleAddEquipment = async (e) => {
     e.preventDefault();
-    if (!newEquipment.name || !newEquipment.inventory_number) {
-      alert('Qurilma nomi va Inventar raqami majburiy!');
+    if (!newEquipment.name) {
+      alert('Qurilma nomi majburiy!');
       return;
     }
 
@@ -560,14 +560,13 @@ function Equipment() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Inventar raqami *</label>
+                  <label>Inventar raqami</label>
                   <input
                     type="text"
                     className="form-control"
                     value={newEquipment.inventory_number}
                     onChange={(e) => setNewEquipment({ ...newEquipment, inventory_number: e.target.value })}
-                    placeholder="Masalan: INV-001"
-                    required
+                    placeholder="Bo'sh qoldirsangiz avtomatik yaratiladi"
                   />
                 </div>
               </div>
