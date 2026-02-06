@@ -761,6 +761,9 @@ class EquipmentViewSet(viewsets.ModelViewSet):
         """Get equipment with optional filtering."""
         queryset = Equipment.objects.select_related('category', 'branch').filter(is_active=True)
 
+        # DEBUG LOGGING
+        logger.error(f"DEBUG_EQUIPMENT_LIST: Initial Active Count: {queryset.count()}")
+
         # Search filter
         search = self.request.query_params.get('search', None)
         if search:
@@ -771,16 +774,24 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                 Q(manufacturer__icontains=search) |
                 Q(model__icontains=search)
             )
+            logger.error(f"DEBUG_EQUIPMENT_LIST: After Search '{search}': {queryset.count()}")
 
         # Category filter
         category = self.request.query_params.get('category', None)
         if category:
             queryset = queryset.filter(category_id=category)
+            logger.error(f"DEBUG_EQUIPMENT_LIST: After Category '{category}': {queryset.count()}")
 
         # Status filter
         status_filter = self.request.query_params.get('status', None)
         if status_filter:
             queryset = queryset.filter(status=status_filter)
+            logger.error(f"DEBUG_EQUIPMENT_LIST: After Status '{status_filter}': {queryset.count()}")
+            
+        final_count = queryset.count()
+        logger.error(f"DEBUG_EQUIPMENT_LIST: Final Count: {final_count}")
+        if final_count > 0:
+             logger.error(f"DEBUG_EQUIPMENT_LIST: First item: {queryset.order_by('-created_at').first().inventory_number}")
 
         return queryset.order_by('-created_at')
 
