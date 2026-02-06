@@ -2040,7 +2040,11 @@ class QRScanViewSet(viewsets.ViewSet):
                 current_assignments_qs = AssignmentService.get_active_assignments(employee=employee)
                 current_assignments = list(current_assignments_qs)
                 
-                print(f"DEBUG_QR_SCAN: Employee {employee.employee_id} found. Active assignments count: {len(current_assignments)}")
+                logger.error(f"DEBUG_QR_SCAN: QR Data: {qr_data}")
+                logger.error(f"DEBUG_QR_SCAN: Extracted ID: {employee_id}")
+                logger.error(f"DEBUG_QR_SCAN: Found Employee: {employee.get_full_name()} (PK: {employee.pk}, ID: {employee.employee_id})")
+                logger.error(f"DEBUG_QR_SCAN: Query: {current_assignments_qs.query}")
+                logger.error(f"DEBUG_QR_SCAN: Active assignments count: {len(current_assignments)}")
                 
                 equipment_list = [
                     {
