@@ -1935,12 +1935,16 @@ class QRScanViewSet(viewsets.ViewSet):
             # Extract equipment inventory number from URL
             parts = qr_data.split('/equipment/')
             if len(parts) > 1:
-                qr_data = f"EQUIPMENT:{parts[1].strip()}"
+                # Handle trailing slashes and query params
+                inv_part = parts[1].split('?')[0].split('#')[0].strip().strip('/')
+                qr_data = f"EQUIPMENT:{inv_part}"
         elif '/employee/' in qr_data:
             # Extract employee ID from URL
             parts = qr_data.split('/employee/')
             if len(parts) > 1:
-                qr_data = f"EMPLOYEE:{parts[1].strip()}"
+                # Handle trailing slashes and query params
+                emp_part = parts[1].split('?')[0].split('#')[0].strip().strip('/')
+                qr_data = f"EMPLOYEE:{emp_part}"
 
         # Equipment QR code
         if qr_data.startswith('EQUIPMENT:'):
@@ -2032,7 +2036,12 @@ class QRScanViewSet(viewsets.ViewSet):
                     }
 
                 # Get current assignments
-                current_assignments = AssignmentService.get_active_assignments(employee=employee)
+                # Use AssignmentService and force evaluation
+                current_assignments_qs = AssignmentService.get_active_assignments(employee=employee)
+                current_assignments = list(current_assignments_qs)
+                
+                print(f"DEBUG_QR_SCAN: Employee {employee.employee_id} found. Active assignments count: {len(current_assignments)}")
+                
                 equipment_list = [
                     {
                         'id': a.equipment.id,
