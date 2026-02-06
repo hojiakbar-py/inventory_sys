@@ -1918,13 +1918,6 @@ class QRScanViewSet(viewsets.ViewSet):
 
             Employee scan returns:
             {
-                "type": "employee",
-                "data": {...employee details...},
-                "branch_info": {...branch details...},
-                "department_info": {...department details...},
-                "current_equipment": [...assigned equipment...],
-                "assignment_statistics": {...statistics...}
-            }
         """
         qr_data = request.data.get('qr_data', '')
 
@@ -1934,84 +1927,77 @@ class QRScanViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Strip whitespace from input
+        qr_data = qr_data.strip()
+        
+        # Check if qr_data is a URL and extract the relevant part
+        if '/equipment/' in qr_data:
+            # Extract equipment inventory number from URL
+            parts = qr_data.split('/equipment/')
+            if len(parts) > 1:
+                qr_data = f"EQUIPMENT:{parts[1].strip()}"
+        elif '/employee/' in qr_data:
+            # Extract employee ID from URL
+            parts = qr_data.split('/employee/')
+            if len(parts) > 1:
+                qr_data = f"EMPLOYEE:{parts[1].strip()}"
+
         # Equipment QR code
         if qr_data.startswith('EQUIPMENT:'):
-            inventory_number = qr_data.replace('EQUIPMENT:', '')
+            inventory_number = qr_data.replace('EQUIPMENT:', '').strip()
             try:
                 equipment = Equipment.objects.select_related(
                     'branch', 'category', 'branch__parent_branch'
                 ).get(inventory_number=inventory_number)
 
-                serializer = EquipmentDetailSerializer(equipment)
-
-                # Get branch information
-                branch_info = None
-                if equipment.branch:
-                    branch_info = {
-                        'id': equipment.branch.id,
-                        'code': equipment.branch.code,
-                        'name': equipment.branch.name,
-                        'branch_type': equipment.branch.get_branch_type_display(),
-                        'city': equipment.branch.city,
-                        'address': equipment.branch.get_full_address(),
-                        'phone': equipment.branch.phone,
-                        'manager': equipment.branch.manager.get_full_name() if equipment.branch.manager else None
-                    }
-
+                # Get maintenance history
+                maintenance_history = MaintenanceService.get_equipment_maintenance_history(equipment)
+                
                 # Get current assignment
-                current_assignment = equipment.get_current_assignment()
-                assignment_info = None
+                current_assignment = None
+                assignment_data = None
+                
+                # Use AssignmentService for consistency
+                active_assignments = AssignmentService.get_active_assignments(equipment=equipment)
+                if active_assignments.exists():
+                     current_assignment = active_assignments.first()
+                
                 if current_assignment:
-                    assignment_info = {
-                        'id': current_assignment.id,
-                        'employee': current_assignment.employee.get_full_name(),
+                    assignment_data = {
+                        'employee_name': current_assignment.employee.get_full_name(),
                         'employee_id': current_assignment.employee.employee_id,
-                        'department': current_assignment.employee.department.name if current_assignment.employee.department else None,
-                        'position': current_assignment.employee.position,
                         'assigned_date': current_assignment.assigned_date,
-                        'days_assigned': current_assignment.get_duration_days(),
-                        'is_overdue': current_assignment.is_overdue(),
-                        'purpose': current_assignment.purpose
+                        'expected_return_date': current_assignment.expected_return_date,
+                        'department': current_assignment.employee.department.name if current_assignment.employee.department else None
                     }
-
-                # Get recent maintenance history
-                recent_maintenance = equipment.maintenance_records.order_by('-performed_date')[:5]
-                maintenance_list = [
-                    {
-                        'id': m.id,
-                        'type': m.get_maintenance_type_display(),
-                        'status': m.get_status_display(),
-                        'description': m.description,
-                        'performed_date': m.performed_date,
-                        'cost': float(m.get_total_cost())
-                    }
-                    for m in recent_maintenance
-                ]
 
                 # Get last inventory check
-                last_check = equipment.get_last_inventory_check()
-                check_info = None
-                if last_check:
-                    check_info = {
-                        'id': last_check.id,
-                        'check_date': last_check.check_date,
-                        'checked_by': last_check.checked_by.username if last_check.checked_by else None,
-                        'location': last_check.location,
-                        'condition': last_check.physical_condition,
-                        'is_functional': last_check.is_functional,
-                        'requires_maintenance': last_check.requires_maintenance
-                    }
+                last_check = InventoryCheck.objects.filter(
+                    equipment=equipment
+                ).order_by('-check_date').first()
 
                 return Response({
                     'type': 'equipment',
-                    'data': serializer.data,
-                    'branch_info': branch_info,
-                    'current_assignment': assignment_info,
-                    'maintenance_history': maintenance_list,
-                    'last_check': check_info,
-                    'is_available': equipment.is_available_for_assignment(),
-                    'warranty_active': equipment.is_warranty_active()
+                    'data': {
+                        'id': equipment.id,
+                        'name': equipment.name,
+                        'inventory_number': equipment.inventory_number,
+                        'serial_number': equipment.serial_number,
+                        'category_name': equipment.category.name if equipment.category else None,
+                        'status': equipment.get_status_display(),
+                        'condition': equipment.get_condition_display(),
+                        'branch': equipment.branch.name,
+                        'location': equipment.location,
+                        'purchase_date': equipment.purchase_date,
+                        'warranty_expiry': equipment.warranty_expiry,
+                        'image': equipment.image.url if equipment.image else None,
+                        'description': equipment.description or equipment.specifications
+                    },
+                    'current_assignment': assignment_data,
+                    'maintenance_history_count': maintenance_history.count(),
+                    'last_check_date': last_check.check_date if last_check else None
                 })
+
             except Equipment.DoesNotExist:
                 return Response(
                     {'error': 'Qurilma topilmadi'},
@@ -2020,31 +2006,20 @@ class QRScanViewSet(viewsets.ViewSet):
 
         # Employee QR code
         elif qr_data.startswith('EMPLOYEE:'):
-            employee_id = qr_data.replace('EMPLOYEE:', '')
+            employee_id = qr_data.replace('EMPLOYEE:', '').strip()
             try:
-                employee = Employee.objects.select_related(
+                # Use flexible lookup to help find the employee
+                employee = Employee.objects.filter(employee_id__iexact=employee_id).select_related(
                     'branch', 'department', 'department__manager',
                     'branch__parent_branch'
-                ).get(employee_id=employee_id)
+                ).first()
+                
+                if not employee:
+                     return Response(
+                        {'error': 'Hodim topilmadi'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
 
-                serializer = EmployeeDetailSerializer(employee)
-
-                # Get branch information
-                branch_info = None
-                if employee.branch:
-                    branch_info = {
-                        'id': employee.branch.id,
-                        'code': employee.branch.code,
-                        'name': employee.branch.name,
-                        'branch_type': employee.branch.get_branch_type_display(),
-                        'city': employee.branch.city,
-                        'address': employee.branch.get_full_address(),
-                        'phone': employee.branch.phone,
-                        'manager': employee.branch.manager.get_full_name() if employee.branch.manager else None,
-                        'employee_count': employee.branch.get_employee_count()
-                    }
-
-                # Get department information
                 department_info = None
                 if employee.department:
                     department_info = {
@@ -2078,58 +2053,40 @@ class QRScanViewSet(viewsets.ViewSet):
                 all_assignments = employee.assignments.all()
                 total_assignments = all_assignments.count()
                 returned_assignments = all_assignments.filter(return_date__isnull=False).count()
-                overdue_assignments = sum(1 for a in current_assignments if a.is_overdue())
-
+                
                 assignment_stats = {
                     'total_assignments': total_assignments,
                     'current_assignments': len(current_assignments),
-                    'returned_assignments': returned_assignments,
-                    'overdue_assignments': overdue_assignments
+                    'returned_assignments': returned_assignments
                 }
 
-                # Check if employee is a manager
+                # Check if is manager
                 is_manager = False
-                managed_entities = []
-
-                # Check branch management
-                managed_branches = Branch.objects.filter(
-                    Q(manager=employee) | Q(area_manager=employee),
-                    is_active=True
-                )
-                if managed_branches.exists():
-                    is_manager = True
-                    for branch in managed_branches:
-                        managed_entities.append({
-                            'type': 'branch',
-                            'name': branch.name,
-                            'code': branch.code,
-                            'role': 'manager' if branch.manager == employee else 'area_manager'
-                        })
-
-                # Check department management
-                managed_departments = Department.objects.filter(
-                    manager=employee,
-                    is_active=True
-                )
-                if managed_departments.exists():
-                    is_manager = True
-                    for dept in managed_departments:
-                        managed_entities.append({
-                            'type': 'department',
-                            'name': dept.name,
-                            'code': dept.code,
-                            'role': 'manager'
-                        })
+                if employee.department:
+                    is_manager = employee.department.manager == employee
+                
+                branch_info = {
+                     'name': employee.branch.name,
+                     'type': employee.branch.get_branch_type_display()
+                }
 
                 return Response({
                     'type': 'employee',
-                    'data': serializer.data,
+                    'data': {
+                        'id': employee.id,
+                        'full_name': employee.get_full_name(),
+                        'employee_id': employee.employee_id,
+                        'position': employee.position,
+                        'email': employee.email,
+                        'phone': employee.phone,
+                        'hire_date': employee.hire_date,
+                        'image': employee.image.url if hasattr(employee, 'image') and employee.image else None,
+                        'is_manager': is_manager
+                    },
                     'branch_info': branch_info,
                     'department_info': department_info,
                     'current_equipment': equipment_list,
-                    'assignment_statistics': assignment_stats,
-                    'is_manager': is_manager,
-                    'managed_entities': managed_entities if is_manager else []
+                    'assignment_statistics': assignment_stats
                 })
             except Employee.DoesNotExist:
                 return Response(
