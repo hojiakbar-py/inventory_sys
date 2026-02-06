@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { employeeAPI, departmentAPI, api } from '../api';
+import { employeeAPI, departmentAPI, branchAPI, api } from '../api';
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -16,6 +17,7 @@ function Employees() {
     first_name: '',
     last_name: '',
     department: '',
+    branch: '',
     position: '',
     email: '',
     phone: ''
@@ -28,13 +30,15 @@ function Employees() {
       if (searchTerm) params.search = searchTerm;
       if (selectedDepartment) params.department = selectedDepartment;
 
-      const [employeesRes, departmentsRes] = await Promise.all([
+      const [employeesRes, departmentsRes, branchesRes] = await Promise.all([
         employeeAPI.getAll(params),
-        departmentAPI.getAll()
+        departmentAPI.getAll(),
+        branchAPI.getAll()
       ]);
 
       setEmployees(employeesRes.data.results || employeesRes.data);
       setDepartments(departmentsRes.data.results || departmentsRes.data);
+      setBranches(branchesRes.data.results || branchesRes.data);
       setLoading(false);
     } catch (error) {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
@@ -135,6 +139,7 @@ function Employees() {
         first_name: '',
         last_name: '',
         department: '',
+        branch: '',
         position: '',
         email: '',
         phone: ''
@@ -368,6 +373,20 @@ function Employees() {
                 />
               </div>
               <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Filial *</label>
+                <select
+                  className="form-control"
+                  value={newEmployee.branch}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, branch: e.target.value })}
+                  required
+                >
+                  <option value="">Filialni tanlang</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: '15px' }}>
                 <label>Bo'lim</label>
                 <select
                   className="form-control"
@@ -375,9 +394,11 @@ function Employees() {
                   onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
                 >
                   <option value="">Bo'limni tanlang</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
+                  {departments
+                    .filter(dept => !newEmployee.branch || dept.branch === parseInt(newEmployee.branch))
+                    .map((dept) => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
                 </select>
               </div>
               <div className="form-group" style={{ marginBottom: '15px' }}>

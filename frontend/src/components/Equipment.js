@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { equipmentAPI, equipmentCategoryAPI, api } from '../api';
+import { equipmentAPI, equipmentCategoryAPI, branchAPI, api } from '../api';
 import { Link } from 'react-router-dom';
 import InvoiceScanner from './InvoiceScanner';
 
@@ -14,13 +14,14 @@ function Equipment() {
   const [importResult, setImportResult] = useState(null);
   const [showInvoiceScanner, setShowInvoiceScanner] = useState(false);
   const [scannedItems, setScannedItems] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [branches, setBranches] = useState([]);
   const [newEquipment, setNewEquipment] = useState({
     name: '',
     inventory_number: '',
     serial_number: '',
     category: '',
+    branch: '',
     manufacturer: '',
     model: '',
     status: 'AVAILABLE',
@@ -36,13 +37,15 @@ function Equipment() {
       if (selectedCategory) params.category = selectedCategory;
       if (selectedStatus) params.status = selectedStatus;
 
-      const [equipmentRes, categoriesRes] = await Promise.all([
+      const [equipmentRes, categoriesRes, branchesRes] = await Promise.all([
         equipmentAPI.getAll(params),
-        equipmentCategoryAPI.getAll()
+        equipmentCategoryAPI.getAll(),
+        branchAPI.getAll()
       ]);
 
       setEquipment(equipmentRes.data.results || equipmentRes.data);
       setCategories(categoriesRes.data.results || categoriesRes.data);
+      setBranches(branchesRes.data.results || branchesRes.data);
       setLoading(false);
     } catch (error) {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
@@ -201,20 +204,14 @@ function Equipment() {
 
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      Object.keys(newEquipment).forEach(key => {
-        if (newEquipment[key]) {
-          formData.append(key, newEquipment[key]);
-        }
-      });
-
-      await equipmentAPI.create(formData);
+      await equipmentAPI.create(newEquipment);
       setShowAddModal(false);
       setNewEquipment({
         name: '',
         inventory_number: '',
         serial_number: '',
         category: '',
+        branch: '',
         manufacturer: '',
         model: '',
         status: 'AVAILABLE',
@@ -572,6 +569,9 @@ function Equipment() {
                     required
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
                 <div className="form-group">
                   <label>Seriya raqami</label>
                   <input
@@ -582,6 +582,23 @@ function Equipment() {
                     placeholder="Masalan: SN123456"
                   />
                 </div>
+                <div className="form-group">
+                  <label>Filial *</label>
+                  <select
+                    className="form-control"
+                    value={newEquipment.branch}
+                    onChange={(e) => setNewEquipment({ ...newEquipment, branch: e.target.value })}
+                    required
+                  >
+                    <option value="">Filialni tanlang</option>
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>{branch.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
                 <div className="form-group">
                   <label>Kategoriya</label>
                   <select
@@ -605,6 +622,9 @@ function Equipment() {
                     placeholder="Masalan: Dell, HP, Lenovo"
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
                 <div className="form-group">
                   <label>Model</label>
                   <input
@@ -628,6 +648,9 @@ function Equipment() {
                     <option value="RETIRED">Chiqarilgan</option>
                   </select>
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
                 <div className="form-group">
                   <label>Xarid narxi</label>
                   <input
@@ -669,9 +692,10 @@ function Equipment() {
               </div>
             </form>
           </div>
-        </div>
-      )}
-    </div>
+        </div >
+      )
+      }
+    </div >
   );
 }
 

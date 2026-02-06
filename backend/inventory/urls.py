@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    DepartmentViewSet, EmployeeViewSet, EquipmentCategoryViewSet,
+    BranchViewSet, DepartmentViewSet, EmployeeViewSet, EquipmentCategoryViewSet,
     EquipmentViewSet, AssignmentViewSet, InventoryCheckViewSet,
     MaintenanceRecordViewSet, QRScanViewSet, AuditLogViewSet,
     request_password_change_otp, verify_otp, change_password_with_otp
@@ -12,6 +12,7 @@ from .auth_views import (
 )
 
 router = DefaultRouter()
+router.register(r'branches', BranchViewSet)
 router.register(r'departments', DepartmentViewSet)
 router.register(r'employees', EmployeeViewSet)
 router.register(r'equipment-categories', EquipmentCategoryViewSet)
