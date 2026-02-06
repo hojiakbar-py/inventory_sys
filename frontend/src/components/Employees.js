@@ -125,8 +125,8 @@ function Employees() {
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
-    if (!newEmployee.employee_id || !newEmployee.first_name || !newEmployee.last_name) {
-      alert('Hodim ID, Ism va Familiya majburiy!');
+    if (!newEmployee.employee_id || !newEmployee.first_name || !newEmployee.last_name || !newEmployee.branch) {
+      alert('Hodim ID, Ism, Familiya va Filial majburiy!');
       return;
     }
 
