@@ -509,3 +509,55 @@ def get_model_changes(old_instance: Any, new_instance: Any, fields: list) -> Dic
             }
 
     return changes
+
+def generate_next_inventory_number(prefix: str) -> str:
+    """
+    Generate next available inventory number with given prefix.
+    Format: PREFIX-0001
+    
+    Args:
+        prefix: Prefix string (usually category code)
+        
+    Returns:
+        New unique inventory number
+    """
+    from .models import Equipment
+    import re
+    
+    # Normalize prefix (uppercase, strip)
+    prefix = prefix.upper().strip()
+    
+    # Find all equipment with this prefix
+    # Use exact prefix match with hyphen, e.g. "LAPTOP-"
+    search_prefix = f"{prefix}-"
+    
+    # Get the last equipment with this prefix
+    # We filter by length first to ensure correct ordering if possible, 
+    # but simplest reliable way is to fetch recent ones and parsing
+    last_item = Equipment.objects.filter(
+        inventory_number__startswith=search_prefix
+    ).order_by('-created_at').first()
+    
+    next_seq = 1
+    
+    if last_item:
+        # Try to extract sequence number from last item
+        # Expected format: PREFIX-0001
+        last_inv = last_item.inventory_number
+        if last_inv.startswith(search_prefix):
+            try:
+                suffix = last_inv[len(search_prefix):]
+                # Extract digits
+                match = re.search(r'(\d+)$', suffix)
+                if match:
+                    next_seq = int(match.group(1)) + 1
+            except (ValueError, IndexError):
+                # Fallback if parsing fails
+                pass
+                
+    # Check for collision loop (just in case of race condition or format mix)
+    while True:
+        new_inv = f"{prefix}-{next_seq:04d}"
+        if not Equipment.objects.filter(inventory_number=new_inv).exists():
+            return new_inv
+        next_seq += 1

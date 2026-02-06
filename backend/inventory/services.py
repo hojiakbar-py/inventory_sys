@@ -446,6 +446,13 @@ class EquipmentService:
             >>> equipment = EquipmentService.create_equipment(data, request.user)
         """
         with transaction.atomic():
+            # Auto-generate inventory number if not provided
+            if not data.get('inventory_number'):
+                from .utils import generate_next_inventory_number
+                category = data.get('category')
+                prefix = category.code if category else 'INV'
+                data['inventory_number'] = generate_next_inventory_number(prefix)
+
             equipment = Equipment.objects.create(
                 **data,
                 created_by=user,

@@ -761,6 +761,9 @@ class EquipmentSerializer(BaseModelSerializer, TimestampedSerializer):
     last_check = serializers.SerializerMethodField()
     is_warranty_active = serializers.SerializerMethodField()
     is_available = serializers.SerializerMethodField()
+    
+    # Make inventory_number optional for auto-generation
+    inventory_number = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Equipment
