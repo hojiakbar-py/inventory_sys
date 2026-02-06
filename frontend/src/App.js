@@ -14,6 +14,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicScanResult from './components/PublicScanResult';
 
 // Main App Component with Sidebar
 function MainApp() {
@@ -122,9 +123,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes - No Sidebar/Auth required for viewing via QR */}
+
         <Route path="/equipment/:id" element={<EquipmentDetail />} />
         <Route path="/employee/:id" element={<EmployeeDetail />} />
+        <Route path="/scan-result/:qrData" element={<PublicScanResult />} />
 
         {/* Auth Routes - No Sidebar */}
         <Route path="/login" element={<Login />} />

@@ -1887,7 +1887,7 @@ class QRScanViewSet(viewsets.ViewSet):
             "qr_data": "EQUIPMENT:INV001"
         }
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     @action(detail=False, methods=['post'])
     def scan(self, request):
