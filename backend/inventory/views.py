@@ -425,6 +425,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         GET /api/employees/?search=john&department=1&is_active=true
     """
     queryset = Employee.objects.all()
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
@@ -745,6 +746,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
         GET /api/equipment/?search=laptop&category=1&status=AVAILABLE
     """
     queryset = Equipment.objects.all()
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
