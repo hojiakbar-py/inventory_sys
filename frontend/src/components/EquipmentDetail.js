@@ -131,7 +131,7 @@ function EquipmentDetail() {
           <div>
             <h3>Asosiy Ma'lumotlar</h3>
             <p><strong>Inventar #:</strong> {equipment.inventory_number}</p>
-            <p><strong>Seriya #:</strong> {equipment.serial_number}</p>
+            <p><strong>Seriya #:</strong> {equipment.serial_number || 'N/A'}</p>
             <p><strong>Kategoriya:</strong> {equipment.category_name || 'N/A'}</p>
             <p><strong>Ishlab chiqaruvchi:</strong> {equipment.manufacturer || 'N/A'}</p>
             <p><strong>Model:</strong> {equipment.model || 'N/A'}</p>
@@ -139,12 +139,8 @@ function EquipmentDetail() {
           </div>
           <div>
             <h3>Moliyaviy Ma'lumotlar</h3>
-            {equipment.purchase_date && (
-              <p><strong>Xarid sanasi:</strong> {new Date(equipment.purchase_date).toLocaleDateString('uz-UZ')}</p>
-            )}
-            {equipment.purchase_price && (
-              <p><strong>Xarid narxi:</strong> {equipment.purchase_price} so'm</p>
-            )}
+            <p><strong>Xarid sanasi:</strong> {equipment.purchase_date ? new Date(equipment.purchase_date).toLocaleDateString('uz-UZ') : 'N/A'}</p>
+            <p><strong>Xarid narxi:</strong> {equipment.purchase_price ? `${equipment.purchase_price} so'm` : 'N/A'}</p>
             {equipment.warranty_expiry && (
               <p><strong>Kafolat muddati:</strong> {new Date(equipment.warranty_expiry).toLocaleDateString('uz-UZ')}</p>
             )}

@@ -1128,36 +1128,39 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                     except (ValueError, TypeError):
                         depreciation_rate = 0.0
 
-                    purchase_price = row.get('purchase_price') or row.get('Narxi') or '0'
-                    try:
-                        purchase_price = float(purchase_price)
-                    except (ValueError, TypeError):
-                        purchase_price = 0.0
+                    purchase_price_str = (row.get('purchase_price') or row.get('Narxi') or '').strip()
+                    if purchase_price_str and purchase_price_str.upper() != 'N/A':
+                        try:
+                            purchase_price = float(purchase_price_str)
+                        except (ValueError, TypeError):
+                            purchase_price = 0
+                    else:
+                        purchase_price = 0
 
                     # Parse dates
-                    purchase_date = row.get('purchase_date') or row.get('Sotib olingan sana') or ''
-                    warranty_expiry = row.get('warranty_expiry') or row.get('Kafolat muddati') or ''
+                    purchase_date = (row.get('purchase_date') or row.get('Sotib olingan sana') or '').strip()
+                    warranty_expiry = (row.get('warranty_expiry') or row.get('Kafolat muddati') or '').strip()
 
-                    if purchase_date and purchase_date.strip():
+                    if purchase_date and purchase_date.upper() != 'N/A':
                         try:
-                            purchase_date = datetime.strptime(purchase_date.strip(), '%Y-%m-%d').date()
+                            purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
                         except ValueError:
                             purchase_date = None
                     else:
                         purchase_date = None
 
-                    if warranty_expiry and warranty_expiry.strip():
+                    if warranty_expiry and warranty_expiry.upper() != 'N/A':
                         try:
-                            warranty_expiry = datetime.strptime(warranty_expiry.strip(), '%Y-%m-%d').date()
+                            warranty_expiry = datetime.strptime(warranty_expiry, '%Y-%m-%d').date()
                         except ValueError:
                             warranty_expiry = None
                     else:
                         warranty_expiry = None
 
-                    # Generate serial number if empty
+                    # Serial number bo'sh bo'lsa N/A qo'yish
                     serial_number = (row.get('serial_number') or row.get('Seriya raqami') or '').strip()
                     if not serial_number:
-                        serial_number = f"SN-{inventory_number}"
+                        serial_number = "N/A"
 
                     # Create or update equipment
                     equipment, created = Equipment.objects.update_or_create(
@@ -1189,6 +1192,65 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                         equipment.calculate_current_value()
                         equipment.save()
                         updated_count += 1
+
+                    # ASSIGNED statusli jihozlar uchun Assignment yaratish
+                    assigned_to = (row.get('assigned_to') or row.get('Tayinlangan hodim') or '').strip()
+
+                    if status_value == 'ASSIGNED':
+                        if not assigned_to:
+                            errors.append(
+                                f"Qator {row_num}: Status 'Tayinlangan' lekin 'assigned_to' ko'rsatilmagan. "
+                                f"Status AVAILABLE ga o'zgartirildi."
+                            )
+                            equipment.status = 'AVAILABLE'
+                            equipment.save()
+                        else:
+                            try:
+                                employee = Employee.objects.get(employee_id=assigned_to, is_deleted=False)
+
+                                # Mavjud aktiv assignment tekshirish (dublikat oldini olish)
+                                existing_assignment = Assignment.objects.filter(
+                                    equipment=equipment,
+                                    return_date__isnull=True
+                                ).first()
+
+                                if not existing_assignment:
+                                    # Tayinlangan sanani parse qilish
+                                    assigned_date_str = (
+                                        row.get('assigned_date') or row.get('Tayinlangan sana') or ''
+                                    ).strip()
+                                    assigned_date_value = None
+                                    if assigned_date_str and assigned_date_str.upper() != 'N/A':
+                                        try:
+                                            parsed_date = datetime.strptime(assigned_date_str, '%Y-%m-%d')
+                                            assigned_date_value = timezone.make_aware(
+                                                parsed_date,
+                                                timezone.get_current_timezone()
+                                            )
+                                        except ValueError:
+                                            assigned_date_value = None
+
+                                    create_kwargs = {
+                                        'equipment': equipment,
+                                        'employee': employee,
+                                        'assigned_by': request.user,
+                                        'condition_on_assignment': (
+                                            row.get('condition') or row.get('Holati') or 'GOOD'
+                                        ).strip(),
+                                        'notes': f"CSV import orqali tayinlangan ({csv_file.name})"
+                                    }
+                                    # Agar sana kiritilgan bo'lsa, assigned_date ni qo'shish
+                                    if assigned_date_value:
+                                        create_kwargs['assigned_date'] = assigned_date_value
+
+                                    Assignment.objects.create(**create_kwargs)
+                            except Employee.DoesNotExist:
+                                errors.append(
+                                    f"Qator {row_num}: '{assigned_to}' ID li hodim topilmadi. "
+                                    f"Status AVAILABLE ga o'zgartirildi."
+                                )
+                                equipment.status = 'AVAILABLE'
+                                equipment.save()
 
                 except Exception as e:
                     error_msg = f"Qator {row_num}: {str(e)}"

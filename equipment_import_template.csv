@@ -1,3 +1,4 @@
-inventory_number,name,category,branch,manufacturer,model,serial_number,purchase_date,purchase_price,status,condition
-INV-001,Dell XPS 15,Laptop,Main Branch,Dell,XPS 15 9500,8H6512-AB,2024-01-15,1500.00,AVAILABLE,NEW
-INV-002,HP LaserJet Pro,Printer,Warehouse,HP,M404dn,VNB3K01234,2023-11-20,350.50,IN_USE,GOOD
+inventory_number,name,category,branch,manufacturer,model,serial_number,purchase_date,purchase_price,status,condition,assigned_to
+INV-001,Dell XPS 15,Laptop,Main Branch,Dell,XPS 15 9500,8H6512-AB,2024-01-15,1500.00,AVAILABLE,NEW,
+INV-002,HP LaserJet Pro,Printer,Warehouse,HP,M404dn,,,,ASSIGNED,GOOD,EMP-001
+INV-003,Samsung Monitor,Monitor,Main Branch,Samsung,S24R350,,,,,NEW,

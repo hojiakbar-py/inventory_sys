@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { equipmentAPI, equipmentCategoryAPI, branchAPI, api } from '../api';
+import { equipmentAPI, equipmentCategoryAPI, branchAPI, employeeAPI, api } from '../api';
 import { Link } from 'react-router-dom';
 import InvoiceScanner from './InvoiceScanner';
 
@@ -29,6 +29,10 @@ function Equipment() {
     purchase_price: '',
     purchase_date: ''
   });
+  const [employees, setEmployees] = useState([]);
+  const [showCsvPreview, setShowCsvPreview] = useState(false);
+  const [csvPreviewData, setCsvPreviewData] = useState([]);
+  const [csvFile, setCsvFile] = useState(null);
   const fileInputRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -38,15 +42,17 @@ function Equipment() {
       if (selectedCategory) params.category = selectedCategory;
       if (selectedStatus) params.status = selectedStatus;
 
-      const [equipmentRes, categoriesRes, branchesRes] = await Promise.all([
+      const [equipmentRes, categoriesRes, branchesRes, employeesRes] = await Promise.all([
         equipmentAPI.getAll(params),
         equipmentCategoryAPI.getAll(),
-        branchAPI.getAll()
+        branchAPI.getAll(),
+        employeeAPI.getAll()
       ]);
 
       setEquipment(equipmentRes.data.results || equipmentRes.data);
       setCategories(categoriesRes.data.results || categoriesRes.data);
       setBranches(branchesRes.data.results || branchesRes.data);
+      setEmployees(employeesRes.data.results || employeesRes.data);
       setLoading(false);
     } catch (error) {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
@@ -88,58 +94,149 @@ function Equipment() {
     }
   };
 
-  const handleImportCSV = async (event) => {
+  // CSV namuna yuklab olish
+  const handleDownloadTemplate = () => {
+    const headers = 'inventory_number,name,category,branch,manufacturer,model,serial_number,purchase_date,purchase_price,status,condition';
+    const example1 = 'INV-001,Dell XPS 15,Laptop,Bosh filial,Dell,XPS 15 9500,8H6512-AB,2024-01-15,1500.00,AVAILABLE,NEW';
+    const example2 = 'INV-002,HP LaserJet Pro,Printer,Ombor,HP,M404dn,,,,ASSIGNED,GOOD';
+    const example3 = 'INV-003,Samsung Monitor,Monitor,Bosh filial,Samsung,S24R350,,,,,NEW';
+    const csvContent = `${headers}\n${example1}\n${example2}\n${example3}\n`;
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'equipment_import_namuna.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // CSV faylni o'qib, preview ko'rsatish
+  const handleImportCSV = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // File validation
     if (!file.name.endsWith('.csv')) {
-      setImportResult({
-        success: false,
-        error: 'Faqat CSV fayllar ruxsat etilgan!'
-      });
+      setImportResult({ success: false, error: 'Faqat CSV fayllar ruxsat etilgan!' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // File size check - 5MB max
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      setImportResult({
-        success: false,
-        error: 'Fayl hajmi 5MB dan oshmasligi kerak!'
-      });
+      setImportResult({ success: false, error: 'Fayl hajmi 5MB dan oshmasligi kerak!' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
+    setCsvFile(file);
+
+    // CSV ni o'qib, preview uchun parse qilish
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        setImportResult({ success: false, error: 'CSV fayl bo\'sh yoki noto\'g\'ri formatda!' });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, ''));
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] || '';
+        });
+        // assigned_to va assigned_date maydonlarini bo'sh qo'shish (foydalanuvchi modal da tanlaydi)
+        if (!row.assigned_to) row.assigned_to = '';
+        if (!row.assigned_date) row.assigned_date = '';
+        rows.push(row);
+      }
+
+      setCsvPreviewData(rows);
+      setShowCsvPreview(true);
+    };
+    reader.readAsText(file);
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // CSV preview dan import qilish
+  const handleConfirmImport = async () => {
+    if (csvPreviewData.length === 0) return;
+
+    setShowCsvPreview(false);
     setImporting(true);
     setImportResult(null);
 
+    // CSV ma'lumotlarini assigned_to va assigned_date bilan qayta yozish
+    const headers = Object.keys(csvPreviewData[0]);
+    // assigned_to va assigned_date ni headers ga qo'shish (agar yo'q bo'lsa)
+    if (!headers.includes('assigned_to')) headers.push('assigned_to');
+    if (!headers.includes('assigned_date')) headers.push('assigned_date');
+
+    const csvLines = [headers.join(',')];
+    csvPreviewData.forEach(row => {
+      const values = headers.map(h => row[h] || '');
+      csvLines.push(values.join(','));
+    });
+    const csvContent = csvLines.join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const fileName = csvFile ? csvFile.name : 'import.csv';
+    const newFile = new File([blob], fileName, { type: 'text/csv' });
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', newFile);
 
     try {
       const response = await api.post('/equipment/import_csv/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      console.log('CSV Import response:', response.data);
       setImportResult(response.data);
-      loadData(); // Reload data after import
+      loadData();
     } catch (error) {
-      console.error('CSV Import error:', error);
-      console.error('Error response:', error.response);
       setImportResult({
         success: false,
         error: error.response?.data?.error || error.message || 'Import qilishda xatolik yuz berdi'
       });
     } finally {
       setImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setCsvFile(null);
+      setCsvPreviewData([]);
     }
+  };
+
+  // Preview da assigned_to o'zgartirish
+  const handleAssignedToChange = (rowIndex, employeeId) => {
+    const updated = [...csvPreviewData];
+    updated[rowIndex].assigned_to = employeeId;
+    setCsvPreviewData(updated);
+  };
+
+  // Preview da assigned_date o'zgartirish
+  const handleAssignedDateChange = (rowIndex, dateValue) => {
+    const updated = [...csvPreviewData];
+    updated[rowIndex].assigned_date = dateValue;
+    setCsvPreviewData(updated);
+  };
+
+  // Preview da statusni o'zgartirish
+  const handleStatusChange = (rowIndex, newStatus) => {
+    const updated = [...csvPreviewData];
+    updated[rowIndex].status = newStatus;
+    // Agar status ASSIGNED emas bo'lsa, assigned_to va assigned_date ni tozalash
+    if (newStatus !== 'ASSIGNED' && newStatus !== 'Tayinlangan') {
+      updated[rowIndex].assigned_to = '';
+      updated[rowIndex].assigned_date = '';
+    }
+    setCsvPreviewData(updated);
   };
 
   const handleScanComplete = (data) => {
@@ -249,6 +346,13 @@ function Equipment() {
           <h3 style={{ margin: 0 }}>Import/Export</h3>
           <div className="action-buttons">
             <button
+              onClick={handleDownloadTemplate}
+              className="btn btn-primary"
+              style={{ backgroundColor: '#6366f1' }}
+            >
+              📋 Namuna yuklab olish
+            </button>
+            <button
               onClick={handleExportCSV}
               className="btn btn-primary"
               style={{ backgroundColor: '#10b981' }}
@@ -281,6 +385,16 @@ function Equipment() {
               ➕ Qurilma Qo'shish
             </button>
           </div>
+        </div>
+
+        <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f0f9ff', borderRadius: '6px', fontSize: '13px', color: '#475569' }}>
+          <strong>CSV formati:</strong> inventory_number, name, category, branch, manufacturer, model, serial_number, purchase_date, purchase_price, status, condition
+          <br />
+          <span style={{ color: '#64748b' }}>
+            * serial_number, purchase_date, purchase_price — ixtiyoriy (bo'sh qolsa "N/A" bo'ladi)
+            <br />
+            * Agar status "Tayinlangan" bo'lsa, import vaqtida hodimni tanlash oynasi chiqadi.
+          </span>
         </div>
 
         {importing && (
@@ -519,6 +633,171 @@ function Equipment() {
           >
             Yopish
           </button>
+        </div>
+      )}
+
+      {/* CSV Preview Modal */}
+      {showCsvPreview && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            width: '95%',
+            maxWidth: '1000px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h2 style={{ marginBottom: '10px' }}>📋 CSV Import — Ko'rib chiqish</h2>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
+              {csvPreviewData.length} ta qurilma topildi. "Tayinlangan" statusli qurilmalar uchun hodimni tanlang.
+            </p>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9' }}>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>#</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Inventar #</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Nomi</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Kategoriya</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Status</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Tayinlangan hodim</th>
+                    <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>Qachondan beri?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvPreviewData.map((row, index) => {
+                    const isAssigned = row.status === 'ASSIGNED' || row.status === 'Tayinlangan';
+                    const needsEmployee = isAssigned && !row.assigned_to;
+                    return (
+                      <tr
+                        key={index}
+                        style={{
+                          backgroundColor: needsEmployee ? '#fef2f2' : (index % 2 === 0 ? 'white' : '#f8fafc'),
+                          borderBottom: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <td style={{ padding: '8px' }}>{index + 1}</td>
+                        <td style={{ padding: '8px', fontWeight: 'bold' }}>{row.inventory_number || '-'}</td>
+                        <td style={{ padding: '8px' }}>{row.name || '-'}</td>
+                        <td style={{ padding: '8px' }}>{row.category || '-'}</td>
+                        <td style={{ padding: '8px' }}>
+                          <select
+                            value={row.status || 'AVAILABLE'}
+                            onChange={(e) => handleStatusChange(index, e.target.value)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '12px',
+                              backgroundColor: isAssigned ? '#fef3c7' : '#ecfdf5'
+                            }}
+                          >
+                            <option value="AVAILABLE">Mavjud</option>
+                            <option value="ASSIGNED">Tayinlangan</option>
+                            <option value="MAINTENANCE">Ta'mirlashda</option>
+                            <option value="RETIRED">Chiqarilgan</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          {isAssigned ? (
+                            <select
+                              value={row.assigned_to || ''}
+                              onChange={(e) => handleAssignedToChange(index, e.target.value)}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                border: needsEmployee ? '2px solid #ef4444' : '1px solid #d1d5db',
+                                fontSize: '12px',
+                                backgroundColor: needsEmployee ? '#fef2f2' : 'white',
+                                minWidth: '200px'
+                              }}
+                            >
+                              <option value="">-- Hodimni tanlang --</option>
+                              {employees.map((emp) => (
+                                <option key={emp.id} value={emp.employee_id}>
+                                  {emp.employee_id} — {emp.first_name} {emp.last_name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          {isAssigned ? (
+                            <input
+                              type="date"
+                              value={row.assigned_date || ''}
+                              onChange={(e) => handleAssignedDateChange(index, e.target.value)}
+                              max={new Date().toISOString().split('T')[0]}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid #d1d5db',
+                                fontSize: '12px'
+                              }}
+                              placeholder="Bo'sh = bugun"
+                            />
+                          ) : (
+                            <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Ogohlantirish — tayinlanmagan qurilmalar */}
+            {csvPreviewData.some(row =>
+              (row.status === 'ASSIGNED' || row.status === 'Tayinlangan') && !row.assigned_to
+            ) && (
+              <div style={{
+                marginTop: '15px',
+                padding: '12px',
+                backgroundColor: '#fef2f2',
+                borderRadius: '6px',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                fontSize: '13px'
+              }}>
+                ⚠️ Ba'zi "Tayinlangan" statusli qurilmalar uchun hodim tanlanmagan.
+                Agar hodim tanlamasangiz, status avtomatik "Mavjud" ga o'zgartiriladi.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                onClick={() => {
+                  setShowCsvPreview(false);
+                  setCsvPreviewData([]);
+                  setCsvFile(null);
+                }}
+                className="btn"
+                style={{ backgroundColor: '#e5e7eb', color: '#374151' }}
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                className="btn btn-primary"
+                style={{ backgroundColor: '#10b981' }}
+              >
+                ✓ Import qilish ({csvPreviewData.length} ta qurilma)
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

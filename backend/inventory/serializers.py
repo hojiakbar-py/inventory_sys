@@ -1308,6 +1308,7 @@ class EquipmentCSVImportSerializer(serializers.Serializer):
     )
     location = serializers.CharField(required=False, allow_blank=True, max_length=200)
     description = serializers.CharField(required=False, allow_blank=True)
+    assigned_to = serializers.CharField(required=False, allow_blank=True, max_length=50)
 
 
 class EmployeeCSVImportSerializer(serializers.Serializer):
