@@ -545,7 +545,7 @@ class DepartmentListSerializer(BaseModelSerializer):
 
     class Meta:
         model = Department
-        fields = ['id', 'code', 'name', 'location', 'branch_name', 'is_active']
+        fields = ['id', 'code', 'name', 'location', 'branch', 'branch_name', 'is_active']
         read_only_fields = ['id']
 
     def get_branch_name(self, obj: Department) -> Optional[str]:
