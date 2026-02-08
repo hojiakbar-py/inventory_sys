@@ -2040,18 +2040,30 @@ class QRScanViewSet(viewsets.ViewSet):
                      current_assignment = active_assignments.first()
                 
                 if current_assignment:
+                    days_assigned = (timezone.now() - current_assignment.assigned_date).days if current_assignment.assigned_date else 0
                     assignment_data = {
+                        'employee': current_assignment.employee.get_full_name(),
                         'employee_name': current_assignment.employee.get_full_name(),
                         'employee_id': current_assignment.employee.employee_id,
                         'assigned_date': current_assignment.assigned_date,
                         'expected_return_date': current_assignment.expected_return_date,
-                        'department': current_assignment.employee.department.name if current_assignment.employee.department else None
+                        'department': current_assignment.employee.department.name if current_assignment.employee.department else None,
+                        'days_assigned': days_assigned
                     }
 
                 # Get last inventory check
                 last_check = InventoryCheck.objects.filter(
                     equipment=equipment
                 ).order_by('-check_date').first()
+
+                last_check_data = None
+                if last_check:
+                    last_check_data = {
+                        'check_date': last_check.check_date,
+                        'checked_by': last_check.checked_by.get_full_name() if last_check.checked_by else None,
+                        'condition': last_check.condition,
+                        'is_functional': last_check.is_functional
+                    }
 
                 return Response({
                     'type': 'equipment',
@@ -2061,14 +2073,19 @@ class QRScanViewSet(viewsets.ViewSet):
                         'inventory_number': equipment.inventory_number,
                         'serial_number': equipment.serial_number,
                         'category_name': equipment.category.name if equipment.category else None,
+                        'manufacturer': equipment.manufacturer,
+                        'model': equipment.model,
                         'status': equipment.get_status_display(),
                         'condition': equipment.get_condition_display(),
                         'branch': equipment.branch.name,
                         'location': equipment.location,
                         'purchase_date': equipment.purchase_date,
+                        'purchase_price': str(equipment.purchase_price) if equipment.purchase_price else None,
                         'warranty_expiry': equipment.warranty_expiry,
                         'image': equipment.image.url if equipment.image else None,
-                        'description': equipment.specifications
+                        'description': equipment.specifications,
+                        'current_assignment': assignment_data,
+                        'last_inventory_check': last_check_data
                     },
                     'current_assignment': assignment_data,
                     'maintenance_history_count': maintenance_history.count(),
