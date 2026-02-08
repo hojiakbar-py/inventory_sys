@@ -2068,7 +2068,7 @@ class QRScanViewSet(viewsets.ViewSet):
                         'purchase_date': equipment.purchase_date,
                         'warranty_expiry': equipment.warranty_expiry,
                         'image': equipment.image.url if equipment.image else None,
-                        'description': equipment.description or equipment.specifications
+                        'description': equipment.specifications
                     },
                     'current_assignment': assignment_data,
                     'maintenance_history_count': maintenance_history.count(),
