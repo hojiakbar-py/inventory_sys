@@ -44,6 +44,12 @@ function Equipment() {
     position: '',
   });
   const [addingEmployee, setAddingEmployee] = useState(false);
+  const [showAddBranchModal, setShowAddBranchModal] = useState(false);
+  const [newBranchData, setNewBranchData] = useState({ code: '', name: '', address: '', city: '' });
+  const [addingBranch, setAddingBranch] = useState(false);
+  const [showAddDepartmentModal, setShowAddDepartmentModal] = useState(false);
+  const [newDepartmentData, setNewDepartmentData] = useState({ code: '', name: '', branch: '' });
+  const [addingDepartment, setAddingDepartment] = useState(false);
   const fileInputRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -284,6 +290,58 @@ function Equipment() {
       alert(errMsg);
     } finally {
       setAddingEmployee(false);
+    }
+  };
+
+  // Yangi filial qo'shish
+  const handleAddNewBranch = async () => {
+    if (!newBranchData.code || !newBranchData.name || !newBranchData.address || !newBranchData.city) {
+      alert('Kod, Nomi, Manzil va Shahar majburiy!');
+      return;
+    }
+    setAddingBranch(true);
+    try {
+      await branchAPI.create(newBranchData);
+      const brRes = await branchAPI.getAll();
+      setBranches(brRes.data.results || brRes.data);
+      setShowAddBranchModal(false);
+      setNewBranchData({ code: '', name: '', address: '', city: '' });
+      alert('Filial muvaffaqiyatli qo\'shildi!');
+    } catch (error) {
+      const errData = error.response?.data;
+      let errMsg = 'Filial qo\'shishda xatolik';
+      if (errData && typeof errData === 'object') {
+        errMsg = Object.entries(errData).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+      }
+      alert(errMsg);
+    } finally {
+      setAddingBranch(false);
+    }
+  };
+
+  // Yangi bo'lim qo'shish
+  const handleAddNewDepartment = async () => {
+    if (!newDepartmentData.code || !newDepartmentData.name || !newDepartmentData.branch) {
+      alert('Kod, Nomi va Filial majburiy!');
+      return;
+    }
+    setAddingDepartment(true);
+    try {
+      await departmentAPI.create(newDepartmentData);
+      const depRes = await departmentAPI.getAll();
+      setDepartments(depRes.data.results || depRes.data);
+      setShowAddDepartmentModal(false);
+      setNewDepartmentData({ code: '', name: '', branch: '' });
+      alert('Bo\'lim muvaffaqiyatli qo\'shildi!');
+    } catch (error) {
+      const errData = error.response?.data;
+      let errMsg = 'Bo\'lim qo\'shishda xatolik';
+      if (errData && typeof errData === 'object') {
+        errMsg = Object.entries(errData).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+      }
+      alert(errMsg);
+    } finally {
+      setAddingDepartment(false);
     }
   };
 
@@ -961,41 +1019,74 @@ function Equipment() {
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
                   Filial <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <select
-                  value={newEmployeeData.branch}
-                  onChange={(e) => setNewEmployeeData({...newEmployeeData, branch: e.target.value, department: ''})}
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="">-- Filialni tanlang --</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <select
+                    value={newEmployeeData.branch}
+                    onChange={(e) => setNewEmployeeData({...newEmployeeData, branch: e.target.value, department: ''})}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="">-- Filialni tanlang --</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBranchModal(true)}
+                    style={{
+                      padding: '8px 12px', fontSize: '16px', backgroundColor: '#10b981',
+                      color: 'white', border: 'none', borderRadius: '6px',
+                      cursor: 'pointer', lineHeight: '1', fontWeight: 'bold'
+                    }}
+                    title="Yangi filial qo'shish"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
                   Bo'lim
                 </label>
-                <select
-                  value={newEmployeeData.department}
-                  onChange={(e) => setNewEmployeeData({...newEmployeeData, department: e.target.value})}
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="">-- Bo'limni tanlang --</option>
-                  {departments
-                    .filter((d) => !newEmployeeData.branch || String(d.branch) === String(newEmployeeData.branch))
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))
-                  }
-                </select>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <select
+                    value={newEmployeeData.department}
+                    onChange={(e) => setNewEmployeeData({...newEmployeeData, department: e.target.value})}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="">-- Bo'limni tanlang --</option>
+                    {departments
+                      .filter((d) => !newEmployeeData.branch || String(d.branch) === String(newEmployeeData.branch))
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))
+                    }
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newEmployeeData.branch) {
+                        setNewDepartmentData({...newDepartmentData, branch: newEmployeeData.branch});
+                      }
+                      setShowAddDepartmentModal(true);
+                    }}
+                    style={{
+                      padding: '8px 12px', fontSize: '16px', backgroundColor: '#10b981',
+                      color: 'white', border: 'none', borderRadius: '6px',
+                      cursor: 'pointer', lineHeight: '1', fontWeight: 'bold'
+                    }}
+                    title="Yangi bo'lim qo'shish"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -1036,6 +1127,179 @@ function Equipment() {
                 }}
               >
                 {addingEmployee ? 'Saqlanmoqda...' : 'Saqlash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Branch Modal */}
+      {showAddBranchModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 3000
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px', padding: '25px',
+            width: '90%', maxWidth: '450px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: '#1e293b' }}>Yangi Filial Qo'shish</h3>
+              <button
+                onClick={() => setShowAddBranchModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}
+              >
+                x
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Kod <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newBranchData.code}
+                  onChange={(e) => setNewBranchData({...newBranchData, code: e.target.value})}
+                  placeholder="Masalan: BR-003"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Nomi <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newBranchData.name}
+                  onChange={(e) => setNewBranchData({...newBranchData, name: e.target.value})}
+                  placeholder="Masalan: Yangiyo'l filiali"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Manzil <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newBranchData.address}
+                  onChange={(e) => setNewBranchData({...newBranchData, address: e.target.value})}
+                  placeholder="Masalan: Amir Temur ko'chasi 15"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Shahar <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newBranchData.city}
+                  onChange={(e) => setNewBranchData({...newBranchData, city: e.target.value})}
+                  placeholder="Masalan: Toshkent"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAddBranchModal(false)}
+                style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px' }}
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleAddNewBranch} disabled={addingBranch}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', border: 'none',
+                  backgroundColor: addingBranch ? '#9ca3af' : '#10b981',
+                  color: 'white', cursor: addingBranch ? 'not-allowed' : 'pointer',
+                  fontSize: '14px', fontWeight: '600'
+                }}
+              >
+                {addingBranch ? 'Saqlanmoqda...' : 'Saqlash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Department Modal */}
+      {showAddDepartmentModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 3000
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px', padding: '25px',
+            width: '90%', maxWidth: '450px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: '#1e293b' }}>Yangi Bo'lim Qo'shish</h3>
+              <button
+                onClick={() => setShowAddDepartmentModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}
+              >
+                x
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Kod <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newDepartmentData.code}
+                  onChange={(e) => setNewDepartmentData({...newDepartmentData, code: e.target.value})}
+                  placeholder="Masalan: DEP-IT"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Nomi <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={newDepartmentData.name}
+                  onChange={(e) => setNewDepartmentData({...newDepartmentData, name: e.target.value})}
+                  placeholder="Masalan: IT bo'limi"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Filial <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select
+                  value={newDepartmentData.branch}
+                  onChange={(e) => setNewDepartmentData({...newDepartmentData, branch: e.target.value})}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                >
+                  <option value="">-- Filialni tanlang --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAddDepartmentModal(false)}
+                style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px' }}
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleAddNewDepartment} disabled={addingDepartment}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', border: 'none',
+                  backgroundColor: addingDepartment ? '#9ca3af' : '#10b981',
+                  color: 'white', cursor: addingDepartment ? 'not-allowed' : 'pointer',
+                  fontSize: '14px', fontWeight: '600'
+                }}
+              >
+                {addingDepartment ? 'Saqlanmoqda...' : 'Saqlash'}
               </button>
             </div>
           </div>
