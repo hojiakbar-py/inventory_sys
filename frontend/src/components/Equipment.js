@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { equipmentAPI, equipmentCategoryAPI, branchAPI, employeeAPI, api } from '../api';
+import { equipmentAPI, equipmentCategoryAPI, branchAPI, employeeAPI, departmentAPI, api } from '../api';
 import { Link } from 'react-router-dom';
 import InvoiceScanner from './InvoiceScanner';
 
@@ -33,6 +33,17 @@ function Equipment() {
   const [showCsvPreview, setShowCsvPreview] = useState(false);
   const [csvPreviewData, setCsvPreviewData] = useState([]);
   const [csvFile, setCsvFile] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [newEmployeeData, setNewEmployeeData] = useState({
+    employee_id: '',
+    first_name: '',
+    last_name: '',
+    branch: '',
+    department: '',
+    position: '',
+  });
+  const [addingEmployee, setAddingEmployee] = useState(false);
   const fileInputRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -42,17 +53,19 @@ function Equipment() {
       if (selectedCategory) params.category = selectedCategory;
       if (selectedStatus) params.status = selectedStatus;
 
-      const [equipmentRes, categoriesRes, branchesRes, employeesRes] = await Promise.all([
+      const [equipmentRes, categoriesRes, branchesRes, employeesRes, departmentsRes] = await Promise.all([
         equipmentAPI.getAll(params),
         equipmentCategoryAPI.getAll(),
         branchAPI.getAll(),
-        employeeAPI.getAll()
+        employeeAPI.getAll(),
+        departmentAPI.getAll()
       ]);
 
       setEquipment(equipmentRes.data.results || equipmentRes.data);
       setCategories(categoriesRes.data.results || categoriesRes.data);
       setBranches(branchesRes.data.results || branchesRes.data);
       setEmployees(employeesRes.data.results || employeesRes.data);
+      setDepartments(departmentsRes.data.results || departmentsRes.data);
       setLoading(false);
     } catch (error) {
       console.error('Ma\'lumotlarni yuklashda xatolik:', error);
@@ -237,6 +250,41 @@ function Equipment() {
       updated[rowIndex].assigned_date = '';
     }
     setCsvPreviewData(updated);
+  };
+
+  // CSV Preview ichidan yangi xodim qo'shish
+  const handleAddNewEmployee = async () => {
+    if (!newEmployeeData.employee_id || !newEmployeeData.first_name ||
+        !newEmployeeData.last_name || !newEmployeeData.branch) {
+      alert('Hodim ID, Ism, Familiya va Filial majburiy!');
+      return;
+    }
+    setAddingEmployee(true);
+    try {
+      await employeeAPI.create(newEmployeeData);
+      // Xodimlar ro'yxatini yangilash
+      const empRes = await employeeAPI.getAll();
+      setEmployees(empRes.data.results || empRes.data);
+      setShowAddEmployeeModal(false);
+      setNewEmployeeData({
+        employee_id: '', first_name: '', last_name: '',
+        branch: '', department: '', position: ''
+      });
+      alert('Hodim muvaffaqiyatli qo\'shildi!');
+    } catch (error) {
+      const errData = error.response?.data;
+      let errMsg = 'Hodim qo\'shishda xatolik';
+      if (errData) {
+        if (typeof errData === 'object') {
+          errMsg = Object.entries(errData).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+        } else {
+          errMsg = errData.detail || errData;
+        }
+      }
+      alert(errMsg);
+    } finally {
+      setAddingEmployee(false);
+    }
   };
 
   const handleScanComplete = (data) => {
@@ -710,25 +758,46 @@ function Equipment() {
                         </td>
                         <td style={{ padding: '8px' }}>
                           {isAssigned ? (
-                            <select
-                              value={row.assigned_to || ''}
-                              onChange={(e) => handleAssignedToChange(index, e.target.value)}
-                              style={{
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                border: needsEmployee ? '2px solid #ef4444' : '1px solid #d1d5db',
-                                fontSize: '12px',
-                                backgroundColor: needsEmployee ? '#fef2f2' : 'white',
-                                minWidth: '200px'
-                              }}
-                            >
-                              <option value="">-- Hodimni tanlang --</option>
-                              {employees.map((emp) => (
-                                <option key={emp.id} value={emp.employee_id}>
-                                  {emp.employee_id} — {emp.first_name} {emp.last_name}
-                                </option>
-                              ))}
-                            </select>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <select
+                                value={row.assigned_to || ''}
+                                onChange={(e) => handleAssignedToChange(index, e.target.value)}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  border: needsEmployee ? '2px solid #ef4444' : '1px solid #d1d5db',
+                                  fontSize: '12px',
+                                  backgroundColor: needsEmployee ? '#fef2f2' : 'white',
+                                  minWidth: '180px',
+                                  flex: 1
+                                }}
+                              >
+                                <option value="">-- Hodimni tanlang --</option>
+                                {employees.map((emp) => (
+                                  <option key={emp.id} value={emp.employee_id}>
+                                    {emp.employee_id} — {emp.first_name} {emp.last_name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => setShowAddEmployeeModal(true)}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '14px',
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  lineHeight: '1'
+                                }}
+                                title="Yangi hodim qo'shish"
+                              >
+                                +
+                              </button>
+                            </div>
                           ) : (
                             <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>
                           )}
@@ -795,6 +864,178 @@ function Equipment() {
                 style={{ backgroundColor: '#10b981' }}
               >
                 ✓ Import qilish ({csvPreviewData.length} ta qurilma)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Employee Modal (CSV Preview ichidan) */}
+      {showAddEmployeeModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '25px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: '#1e293b' }}>Yangi Hodim Qo'shish</h3>
+              <button
+                onClick={() => setShowAddEmployeeModal(false)}
+                style={{
+                  background: 'none', border: 'none', fontSize: '24px',
+                  cursor: 'pointer', color: '#64748b'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Hodim ID <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newEmployeeData.employee_id}
+                  onChange={(e) => setNewEmployeeData({...newEmployeeData, employee_id: e.target.value})}
+                  placeholder="Masalan: EMP-005"
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                    Ism <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newEmployeeData.first_name}
+                    onChange={(e) => setNewEmployeeData({...newEmployeeData, first_name: e.target.value})}
+                    placeholder="Ism"
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                    Familiya <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newEmployeeData.last_name}
+                    onChange={(e) => setNewEmployeeData({...newEmployeeData, last_name: e.target.value})}
+                    placeholder="Familiya"
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: '6px',
+                      border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Filial <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select
+                  value={newEmployeeData.branch}
+                  onChange={(e) => setNewEmployeeData({...newEmployeeData, branch: e.target.value, department: ''})}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">-- Filialni tanlang --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Bo'lim
+                </label>
+                <select
+                  value={newEmployeeData.department}
+                  onChange={(e) => setNewEmployeeData({...newEmployeeData, department: e.target.value})}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">-- Bo'limni tanlang --</option>
+                  {departments
+                    .filter((d) => !newEmployeeData.branch || String(d.branch) === String(newEmployeeData.branch))
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))
+                  }
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                  Lavozim
+                </label>
+                <input
+                  type="text"
+                  value={newEmployeeData.position}
+                  onChange={(e) => setNewEmployeeData({...newEmployeeData, position: e.target.value})}
+                  placeholder="Masalan: Dasturchi"
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAddEmployeeModal(false)}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db',
+                  backgroundColor: 'white', cursor: 'pointer', fontSize: '14px'
+                }}
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleAddNewEmployee}
+                disabled={addingEmployee}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', border: 'none',
+                  backgroundColor: addingEmployee ? '#9ca3af' : '#10b981',
+                  color: 'white', cursor: addingEmployee ? 'not-allowed' : 'pointer',
+                  fontSize: '14px', fontWeight: '600'
+                }}
+              >
+                {addingEmployee ? 'Saqlanmoqda...' : 'Saqlash'}
               </button>
             </div>
           </div>
