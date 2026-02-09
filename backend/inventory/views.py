@@ -2182,6 +2182,8 @@ class QRScanViewSet(viewsets.ViewSet):
                         'full_name': employee.get_full_name(),
                         'employee_id': employee.employee_id,
                         'position': employee.position,
+                        'department_name': employee.department.name if employee.department else None,
+                        'branch_name': employee.branch.name if employee.branch else None,
                         'email': employee.email,
                         'phone': employee.phone,
                         'hire_date': employee.hire_date,
