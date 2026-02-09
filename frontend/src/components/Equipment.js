@@ -190,6 +190,18 @@ function Equipment() {
   const handleConfirmImport = async () => {
     if (csvPreviewData.length === 0) return;
 
+    // ASSIGNED statusdagi qurilmalar uchun assigned_to majburiy tekshiruv
+    const assignedWithoutEmployee = csvPreviewData.filter(
+      (row, index) => (row.status === 'ASSIGNED' || row.status === 'Tayinlangan') && !row.assigned_to
+    );
+    if (assignedWithoutEmployee.length > 0) {
+      alert(
+        `${assignedWithoutEmployee.length} ta qurilma "Tayinlangan" statusda, lekin hodim tanlanmagan. ` +
+        `Iltimos, har bir tayinlangan qurilmaga hodim tanlang yoki statusni o'zgartiring.`
+      );
+      return;
+    }
+
     setShowCsvPreview(false);
     setImporting(true);
     setImportResult(null);
@@ -1427,7 +1439,7 @@ function Equipment() {
                     onChange={(e) => setNewEquipment({ ...newEquipment, status: e.target.value })}
                   >
                     <option value="AVAILABLE">Mavjud</option>
-                    <option value="ASSIGNED">Tayinlangan</option>
+                    {/* ASSIGNED faqat Assignment orqali o'rnatiladi, qo'lda tanlab bo'lmaydi */}
                     <option value="MAINTENANCE">Ta'mirlashda</option>
                     <option value="RETIRED">Chiqarilgan</option>
                   </select>

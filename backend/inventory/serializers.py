@@ -807,6 +807,28 @@ class EquipmentSerializer(BaseModelSerializer, TimestampedSerializer):
         ]
         read_only_fields = ['id', 'qr_code', 'current_value', 'created_at', 'updated_at']
 
+    def validate_status(self, value):
+        """
+        ASSIGNED statusini to'g'ridan-to'g'ri o'rnatishni taqiqlash.
+
+        Qurilma faqat Assignment yaratilganda ASSIGNED bo'lishi mumkin.
+        API orqali to'g'ridan-to'g'ri ASSIGNED qilib bo'lmaydi.
+        """
+        if value == EquipmentStatus.ASSIGNED:
+            # Agar bu yangi qurilma bo'lsa (create) — ASSIGNED taqiqlanadi
+            if not self.instance:
+                raise serializers.ValidationError(
+                    "Yangi qurilmani 'Tayinlangan' statusida yaratib bo'lmaydi. "
+                    "Avval qurilmani yarating, keyin hodimga tayinlang."
+                )
+            # Agar mavjud qurilma (update) — faqat aktiv assignment bor bo'lsa ruxsat
+            if self.instance and not self.instance.assignments.filter(return_date__isnull=True).exists():
+                raise serializers.ValidationError(
+                    "Qurilmani 'Tayinlangan' statusiga o'zgartirib bo'lmaydi. "
+                    "Avval qurilmani hodimga tayinlang (Assignment yarating)."
+                )
+        return value
+
     def get_current_assignment(self, obj: Equipment) -> Optional[Dict[str, Any]]:
         """
         Get current assignment information.

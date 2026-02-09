@@ -19,6 +19,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 
 from .base_models import (
@@ -1111,12 +1112,31 @@ class Equipment(QRCodeMixin, NoteMixin, LocationMixin, FullAuditModel):
         Automatically:
         - Generates QR code on first save
         - Calculates current value if not set
+        - Validates ASSIGNED status has corresponding Assignment record
+
+        Raises:
+            ValidationError: If status is ASSIGNED but no active Assignment exists
         """
         if not self.qr_code:
             self.generate_qr_code()
 
         if not self.current_value or self.current_value == 0:
             self.calculate_current_value()
+
+        # Orphan ASSIGNED status oldini olish:
+        # Agar status ASSIGNED ga o'zgartirilayotgan bo'lsa va bu yangi ob'ekt emas bo'lsa,
+        # aktiv Assignment borligini tekshiramiz.
+        # Assignment.save() .update() ishlatadi, shuning uchun bu validatsiyaga ta'sir qilmaydi.
+        if self.pk and self.status == EquipmentStatus.ASSIGNED:
+            has_active_assignment = self.assignments.filter(return_date__isnull=True).exists()
+            if not has_active_assignment:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Equipment {self.inventory_number}: Status ASSIGNED ga o'zgartirilmoqda "
+                    f"lekin aktiv Assignment topilmadi. Status AVAILABLE ga qaytarildi."
+                )
+                self.status = EquipmentStatus.AVAILABLE
 
         super().save(*args, **kwargs)
 

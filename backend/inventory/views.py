@@ -1196,8 +1196,6 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                     # ASSIGNED statusli jihozlar uchun Assignment yaratish
                     assigned_to = (row.get('assigned_to') or row.get('Tayinlangan hodim') or '').strip()
 
-                    logger.error(f"DEBUG CSV ROW {row_num}: status_str='{status_str}', status_value='{status_value}', assigned_to='{assigned_to}', row_keys={list(row.keys())}")
-
                     if status_value == 'ASSIGNED':
                         if not assigned_to:
                             errors.append(

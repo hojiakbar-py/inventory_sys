@@ -1,8 +1,10 @@
 from django.contrib import admin
+from django.contrib import messages
 from .models import (
     Department, Employee, EquipmentCategory, Equipment,
     Assignment, InventoryCheck, MaintenanceRecord, AuditLog
 )
+from .constants import EquipmentStatus
 
 
 @admin.register(Department)
@@ -31,6 +33,26 @@ class EquipmentAdmin(admin.ModelAdmin):
     list_filter = ['status', 'category', 'manufacturer']
     search_fields = ['name', 'inventory_number', 'serial_number']
     readonly_fields = ['qr_code', 'created_at', 'updated_at']
+
+    def save_model(self, request, obj, form, change):
+        """
+        Admin paneldan ASSIGNED statusiga o'zgartirishni oldini olish.
+
+        Qurilmani tayinlash faqat Assignment orqali bo'lishi kerak.
+        Bu yerda to'g'ridan-to'g'ri ASSIGNED qilish taqiqlanadi.
+        """
+        if change and obj.status == EquipmentStatus.ASSIGNED:
+            # Aktiv assignment borligini tekshirish
+            has_active_assignment = obj.assignments.filter(return_date__isnull=True).exists()
+            if not has_active_assignment:
+                messages.error(
+                    request,
+                    f"'{obj.inventory_number}' qurilmasini 'Tayinlangan' statusiga o'zgartirib bo'lmaydi. "
+                    f"Avval qurilmani hodimga tayinlang (Assignment yarating). "
+                    f"Status 'Mavjud' ga qaytarildi."
+                )
+                obj.status = EquipmentStatus.AVAILABLE
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Assignment)
