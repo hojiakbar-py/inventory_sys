@@ -53,8 +53,7 @@ class Command(BaseCommand):
         # Barcha ASSIGNED statusdagi qurilmalarni topish
         assigned_equipment = Equipment.objects.filter(
             status=EquipmentStatus.ASSIGNED,
-            is_active=True,
-            is_deleted=False
+            is_active=True
         )
 
         total_assigned = assigned_equipment.count()
