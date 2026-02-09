@@ -1206,7 +1206,7 @@ class EquipmentViewSet(viewsets.ModelViewSet):
                             equipment.save()
                         else:
                             try:
-                                employee = Employee.objects.get(employee_id=assigned_to, is_deleted=False)
+                                employee = Employee.objects.get(employee_id=assigned_to, is_active=True)
 
                                 # Mavjud aktiv assignment tekshirish (dublikat oldini olish)
                                 existing_assignment = Assignment.objects.filter(
